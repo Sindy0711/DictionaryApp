@@ -1,0 +1,22 @@
+{% extends "layout.html" %} 
+
+{% block content %}
+<h2>Search Vocabulary</h2>
+<form method="post">
+  <input type="text" name="query" placeholder="Enter a word" required />
+  <button type="submit">Search</button>
+</form>
+
+{% if results %}
+<h3>Search Results for "{{ query }}"</h3>
+<ul>
+  {% for result in results %}
+  <li>
+    <strong>{{ result.tu }}</strong><br />
+    Pronunciation: {{ result.phienam }}<br />
+    Meaning: {{ result.nghia }}<br />
+    Example: {{ result.vi_du }}
+  </li>
+  {% endfor %}
+</ul>
+{% endif %} {% endblock %}

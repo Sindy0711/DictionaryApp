@@ -1,1 +1,8 @@
-virtualenv
+Flask
+Flask-Session
+SQLAlchemy
+psycopg2
+psycopg2-binary
+python-dotenv
+gunicorn
+requests
