@@ -1,5 +1,6 @@
 Flask
 Flask-Session
+flask-paginate
 SQLAlchemy
 psycopg2
 psycopg2-binary

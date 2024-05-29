@@ -1,22 +1,23 @@
-{% extends "layout.html" %} 
+{% extends "layout.html" %}
+
+{% block title %}Search{% endblock %}
 
 {% block content %}
-<h2>Search Vocabulary</h2>
-<form method="post">
-  <input type="text" name="query" placeholder="Enter a word" required />
-  <button type="submit">Search</button>
-</form>
+<div class="container">
+    <div class="row">
+        <div class="col-6">
+            <div class="search-form">
+                    <form class="form-inline justify-content-center" action="{{url_for("search")}}" method="post">
+                    <h2 class="card-title color-default">Search for a Book</h2>
+                    <div class="form-group">
+                        <input name="input-search" class="form-control form-control-lg mr-sm-2" placeholder="find" type="search" required>
+                        <button type="submit" class="btn my-2 my-sm-0 btn-lg btn-primary">Search</button>
+                    </div> <!-- form-group// -->
+                  </form>
+              </div>
+        </div>
+        <div class="col-6"><!--Placeholder right--></div>
+    </div>
+</div>
 
-{% if results %}
-<h3>Search Results for "{{ query }}"</h3>
-<ul>
-  {% for result in results %}
-  <li>
-    <strong>{{ result.tu }}</strong><br />
-    Pronunciation: {{ result.phienam }}<br />
-    Meaning: {{ result.nghia }}<br />
-    Example: {{ result.vi_du }}
-  </li>
-  {% endfor %}
-</ul>
-{% endif %} {% endblock %}
+{% endblock %}

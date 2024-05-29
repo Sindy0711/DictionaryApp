@@ -7,9 +7,8 @@
 3. Run `pip3 install -r requirements.txt` to make sure all of the necessary Python packages (Flask, SQLAlchemy and others) are installed
 4. Set the environment variables:
 	* `export FLASK_APP=application.py`. On Windows, the command is instead` set FLASK_APP=application.py`
-    - `KEY` = is your API key, will give you the review and rating data for the book with the provided ISBN number (register at goodreads.com)
     - `DATABASE_URL` = URI for your local postgreSQL database (for example: `postgres://username:password@localhost:5432/databasename` )
 5. Run `tables.sql` against your database to create the necessary tables
   
-6. Run `python3 import.py` to import a spreadsheet in CSV format of 5000 different books to your database
+6. Run `python3 import.py` to import a spreadsheet in CSV format to your database
 7. Finally execute `flask run` command in your terminal to start the server

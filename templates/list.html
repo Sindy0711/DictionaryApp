@@ -1,0 +1,35 @@
+{% extends "layout.html" %} 
+{% block title %}List{% endblock %} 
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class=" mt-5">
+      {% if result %}
+      <table class="table .list">
+        <thead>
+          <tr>
+            <th scope="col">Từ</th>
+            <th scope="col">Phiên Âm</th>
+            <th scope="col">Mô tả</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in result %}
+          <tr>
+            <td>{{item.tu}}</td>
+            <td>{{item.phienam}}</td>
+            <td>{{item.nghia}}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+        <p>No results found</p>
+      {% endif %} 
+    </div>
+      
+  </div>
+  <div class="col-md-6 col-sm-0"></div>
+</div>
+
+{% endblock %}

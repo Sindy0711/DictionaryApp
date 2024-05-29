@@ -1,9 +1,10 @@
 import os
 from functools import wraps
 from sqlalchemy import create_engine, text
+from sqlalchemy.orm import scoped_session, sessionmaker
 from flask import Flask, session, render_template, redirect, request, url_for
 from flask_session import Session
-
+from flask_paginate import Pagination, get_page_parameter
 from dotenv import load_dotenv
 load_dotenv() 
 
@@ -18,7 +19,7 @@ app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
 engine = create_engine(os.getenv("DATABASE_URL"))
-# db = scoped_session(sessionmaker(bind=engine))
+db = scoped_session(sessionmaker(bind=engine))
 
 
 
@@ -36,14 +37,32 @@ def login_required(f):
 def index():
     return render_template('index.html')
 
+
 @app.route('/search', methods=['GET', 'POST'])
 def search():
-    if request.method == 'POST':
-        query = request.form.get('query')
-        with engine.connect() as connection:
-            result = connection.execute(text("SELECT tu, phienam, nghia, motachung FROM tuvung WHERE tu LIKE :query"), {"query": f"%{query}%"})
-            results = result.fetchall()
-        return render_template('search.html', results=results, query=query)
-    return render_template('search.html')
+    if request.method == "GET":
+        return render_template("search.html")
+    
+    query = request.form.get("input-search")
+    page = request.args.get('page', type=int, default=1)
+    
+    if not query:
+        return render_template("error.html", message="Search field cannot be empty!")
+    
+    per_page = 20
+    offset = (page - 1) * 20
+    query_like = f"%{query.lower()}%"
+    try:
+        total = db.execute(text('SELECT COUNT(*) FROM tuvung WHERE LOWER(tu) LIKE :query'), {"query": query_like}).scalar()
+        result = db.execute(text('SELECT * FROM tuvung WHERE LOWER(tu) LIKE :query ORDER BY tu LIMIT :limit OFFSET :offset'), 
+                             {"query": query_like, "limit": per_page, "offset": offset}).fetchall()
+        pagination = Pagination(page=page, total=total, per_page=per_page, css_framework='bootstrap4')
+    except Exception as e:
+        return render_template("error.html", message=str(e))
+
+    if not result:
+        return render_template("error.html", message="Your query did not match any documents.")
+    
+    return render_template("list.html", result=result, pagination=pagination)
 if __name__ == "__main__":
     app.run(debug=True)
