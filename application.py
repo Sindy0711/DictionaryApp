@@ -22,6 +22,7 @@ engine = create_engine(os.getenv("DATABASE_URL"))
 db = scoped_session(sessionmaker(bind=engine))
 
 
+ITEMS_PER_PAGE = 20
 
 ## Helper 
 def login_required(f):
@@ -38,31 +39,38 @@ def index():
     return render_template('index.html')
 
 
+@app.route('/page', methods=['GET'])
+def page():
+    page = request.args.get(get_page_parameter(), type=int, default=1)
+    offset = (page - 1) * ITEMS_PER_PAGE
+
+    try:
+        result = db.execute(text('SELECT * FROM tuvung ORDER BY ma_tu_vung LIMIT :limit OFFSET :offset'), {"limit": ITEMS_PER_PAGE, "offset": offset}).fetchall()
+        total_results = db.execute(text('SELECT COUNT(*) FROM tuvung')).scalar()
+    except Exception as e:
+        return render_template("error.html", message=str(e))
+
+    pagination = Pagination(page=page, total=total_results, search=False, record_name='result', per_page=ITEMS_PER_PAGE)
+
+    return render_template("list.html", result=result, pagination=pagination)
+        
+
 @app.route('/search', methods=['GET', 'POST'])
 def search():
     if request.method == "GET":
         return render_template("search.html")
-    
-    query = request.form.get("input-search")
-    page = request.args.get('page', type=int, default=1)
-    
-    if not query:
-        return render_template("error.html", message="Search field cannot be empty!")
-    
-    per_page = 20
-    offset = (page - 1) * 20
-    query_like = f"%{query.lower()}%"
-    try:
-        total = db.execute(text('SELECT COUNT(*) FROM tuvung WHERE LOWER(tu) LIKE :query'), {"query": query_like}).scalar()
-        result = db.execute(text('SELECT * FROM tuvung WHERE LOWER(tu) LIKE :query ORDER BY tu LIMIT :limit OFFSET :offset'), 
-                             {"query": query_like, "limit": per_page, "offset": offset}).fetchall()
-        pagination = Pagination(page=page, total=total, per_page=per_page, css_framework='bootstrap4')
-    except Exception as e:
-        return render_template("error.html", message=str(e))
+    else:
+        query = request.form.get("input-search")
+        if query is None:
+            return render_template("error.html", message="Search field can not be empty!")
+        try:
+            result = db.execute(text('SELECT * FROM tuvung WHERE LOWER(tu) LIKE :query'), {"query": "%" + query.lower() + "%"}).fetchall()
+        except Exception as e:
+            return render_template("error.html", message=e)
+        if not result:
+            return render_template("error.html", message="Your query did not match any documents")
+        return render_template("list.html", result=result)
 
-    if not result:
-        return render_template("error.html", message="Your query did not match any documents.")
-    
-    return render_template("list.html", result=result, pagination=pagination)
+
 if __name__ == "__main__":
     app.run(debug=True)
