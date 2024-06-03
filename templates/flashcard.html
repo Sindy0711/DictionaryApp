@@ -1,0 +1,16 @@
+{% extends "layout.html" %} {% block content %}
+
+<div class="card">
+  <strong> {{ flashcard.tu }} </strong>
+  <strong> {{ flashcard.phienam }} </strong>
+  <span>{{ flashcard.nghia }}</span>
+</div>
+<button id="next-button">Next</button>
+
+<script>
+document.getElementById("next-button").addEventListener("click", function() {
+    location.reload();
+});
+</script>
+
+{% endblock content %}

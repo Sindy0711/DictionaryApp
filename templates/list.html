@@ -1,5 +1,6 @@
-{% extends "layout.html" %} {% block title %}List{% endblock %} {% block content
-%}
+{% extends "layout.html" %} 
+{% block title %}List{% endblock %} 
+{% block content %}
 <div class="container">
   <div class="row">
     <div class="mt-5">
@@ -25,9 +26,9 @@
       {% if pagination %}
       <div class="row">
         <div class="col">{{ pagination.links }}</div>
-        {% endif %}
       </div>
+      {% endif %}
     </div>
   </div>
-  {% endblock %}
 </div>
+{% endblock %}

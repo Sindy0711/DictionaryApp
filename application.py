@@ -2,9 +2,10 @@ import os
 from functools import wraps
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import scoped_session, sessionmaker
-from flask import Flask, session, render_template, redirect, request, url_for
+from flask import Flask, jsonify, session, render_template, redirect, request, url_for
 from flask_session import Session
 from flask_paginate import Pagination, get_page_parameter
+
 from dotenv import load_dotenv
 load_dotenv() 
 
@@ -70,6 +71,19 @@ def search():
         if not result:
             return render_template("error.html", message="Your query did not match any documents")
         return render_template("list.html", result=result)
+
+@app.route('/flashcard', methods=['GET'])
+def flashcard():
+    try:
+        flashcard = db.execute(text('SELECT * FROM tuvung ORDER BY RANDOM() LIMIT 1')).fetchone()
+        
+    except Exception as e:
+        return render_template("error.html", message=str(e))
+
+    if not flashcard:
+        return render_template("error.html", message="No flashcards available")
+
+    return render_template("flashcard.html", flashcard=flashcard)
 
 
 if __name__ == "__main__":
