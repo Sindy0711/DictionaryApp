@@ -1,0 +1,53 @@
+{% extends "layout.html" %}
+{% block title %}Saved Words{% endblock %} 
+{% block content %}
+<div class="container">
+  <h2>Saved Words</h2>
+  <table class="table">
+    <thead>
+      <tr>
+        <th scope="col">Từ</th>
+        <th scope="col">Phiên Âm</th>
+        <th scope="col">Mô tả</th>
+        <th scope="col">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for word in saved_words %}
+      <tr>
+        <td>{{ word.tu }}</td>
+        <td>{{ word.phienam }}</td>
+        <td>{{ word.nghia }}</td>
+        <td>
+          <button class="btn btn-danger btn-delete" data-id="{{ word.id }}">Xóa</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  document.querySelectorAll('.btn-delete').forEach(button => {
+    button.addEventListener('click', function() {
+      const wordId = this.getAttribute('data-id');
+      fetch(`/delete_word/${wordId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === 'success') {
+          this.closest('tr').remove();
+        } else {
+          alert('Error deleting word.');
+        }
+      });
+    });
+  });
+});
+</script>
+{% endblock %}
