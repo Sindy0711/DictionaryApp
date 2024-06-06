@@ -1,0 +1,13 @@
+{% extends "layout.html" %}
+{% block title %}View Page{% endblock %}
+{% block content %}
+<div class="container">
+  <h2>{{ page.ten_trang }}</h2>
+  <ul>
+    {% for word in words %}
+    <li>{{ word.tu }} - {{ word.phienam }} - {{ word.nghia }}</li>
+    {% endfor %}
+  </ul>
+  <a href="{{ url_for('trang_tu_vung') }}" class="btn btn-primary">Back to Pages</a>
+</div>
+{% endblock %}

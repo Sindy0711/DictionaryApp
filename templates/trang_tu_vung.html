@@ -1,0 +1,16 @@
+{% extends "layout.html" %}
+{% block title %}Vocabulary Pages{% endblock %}
+{% block content %}
+<div class="container">
+  <h2>Your Vocabulary Pages</h2>
+  {% if pages %}
+    <ul>
+      {% for page in pages %}
+        <li><a href="{{ url_for('view_page', page_id=page.ma_trang) }}">{{ page.ten_trang }}</a></li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No pages found.</p>
+  {% endif %}
+</div>
+{% endblock %}

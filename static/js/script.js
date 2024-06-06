@@ -1,64 +1,62 @@
-document.addEventListener("DOMContentLoaded", function() {
-  // Script để xử lý các từ đã chọn
-  const selectedWords = JSON.parse(sessionStorage.getItem('selectedWords')) || [];
-  const selectedWordsDiv = document.getElementById('selected-words');
+// static/js/script.js
+document.addEventListener('DOMContentLoaded', () => {
+  const selectedWords = [];
+  const selectedWordsContainer = document.getElementById('selected-words');
   const saveWordsBtn = document.getElementById('save-words-btn');
+  const createPageForm = document.getElementById('create-page-form');
 
   document.querySelectorAll('.btn-select').forEach(button => {
-    button.addEventListener('click', function() {
-      const tu = this.getAttribute('data-tu');
-      const phienam = this.getAttribute('data-phienam');
-      const nghia = this.getAttribute('data-nghia');
-      
-      // Kiểm tra nếu từ đã tồn tại trong selectedWords
-      if (selectedWords.length < 10 && !selectedWords.some(word => word.tu === tu)) {
+    button.addEventListener('click', () => {
+      const tu = button.getAttribute('data-tu');
+      const phienam = button.getAttribute('data-phienam');
+      const nghia = button.getAttribute('data-nghia');
+
+      if (selectedWords.length < 10) {
         selectedWords.push({ tu, phienam, nghia });
-        updateSelectedWords();
-      } else if (selectedWords.some(word => word.tu === tu)) {
-        alert("Từ này đã được chọn.");
+        renderSelectedWords();
       } else {
-        alert("Bạn chỉ có thể chọn tối đa 10 từ.");
+        alert('You can select up to 10 words only.');
       }
     });
   });
 
-  function updateSelectedWords() {
-    selectedWordsDiv.innerHTML = '<ul>' + selectedWords.map(word => `<li>${word.tu} - ${word.phienam} - ${word.nghia}</li>`).join('') + '</ul>';
+  function renderSelectedWords() {
+    selectedWordsContainer.innerHTML = '';
+    selectedWords.forEach(word => {
+      const div = document.createElement('div');
+      div.textContent = `${word.tu} - ${word.phienam} - ${word.nghia}`;
+      selectedWordsContainer.appendChild(div);
+    });
     saveWordsBtn.disabled = selectedWords.length === 0;
-    sessionStorage.setItem('selectedWords', JSON.stringify(selectedWords));
-    fetch('/save_selected_words', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(selectedWords),
-    });
+    createPageForm.style.display = selectedWords.length > 0 ? 'block' : 'none';
   }
 
-  function loadSelectedWords() {
-    updateSelectedWords();
-  }
+  createPageForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const pageName = document.getElementById('page-name').value.trim();
+    const pageDescription = document.getElementById('page-description').value.trim();
 
-  loadSelectedWords();
+    if (!pageName) {
+      alert('Page name is required');
+      return;
+    }
 
-  // Script để xử lý việc xóa từ
-  document.querySelectorAll('.btn-delete').forEach(button => {
-    button.addEventListener('click', function() {
-      const wordId = this.getAttribute('data-id');
-      fetch(`/delete_word/${wordId}`, {
+    try {
+      const response = await fetch('/create_vocabulary_page', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.status === 'success') {
-          this.closest('tr').remove();
-        } else {
-          alert('Lỗi khi xóa từ.');
-        }
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ page_name: pageName, page_description: pageDescription, words: selectedWords })
       });
-    });
+      const data = await response.json();
+      if (data.status === 'success') {
+        alert('Page created successfully!');
+        window.location.reload();
+      } else {
+        alert(`Error: ${data.message}`);
+      }
+    } catch (error) {
+      console.error('Error creating page:', error);
+      alert('An error occurred while creating the page. Please try again.');
+    }
   });
 });

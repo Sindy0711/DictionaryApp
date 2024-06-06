@@ -1,3 +1,4 @@
+<!-- templates/list.html -->
 {% extends "layout.html" %}
 {% block title %}List{% endblock %}
 {% block content %}
@@ -5,7 +6,7 @@
   <div class="row">
     <div class="col-md-6 mt-5">
       {% if result %}
-      <table class="table .list">
+      <table class="table list">
         <thead>
           <tr>
             <th scope="col">Từ</th>
@@ -31,23 +32,28 @@
         <p>No results found</p>
       {% endif %}
     </div>
-    
+
     <div class="col-md-6 mt-5">
-      <h2>Selected Words</h2>
+      <h4>Selected Words (Max 10)</h4>
       <div id="selected-words">
-        {% if selected_words %}
-        <ul>
-          {% for word in selected_words %}
-          <li>{{ word.tu }} - {{ word.phienam }} - {{ word.nghia }}</li>
-          {% endfor %}
-        </ul>
-        {% else %}
-        <p>No words selected yet.</p>
-        {% endif %}
+        <!-- Selected words will be displayed here -->
       </div>
-      <form action="{{ url_for('save_words') }}" method="post">
-        <button type="submit" class="btn btn-primary" id="save-words-btn" {% if not selected_words %}disabled{% endif %}>Save Words</button>
-      </form>
+      <button id="save-words-btn" class="btn btn-primary" disabled>Lưu từ</button>
+
+      <div id="create-page-form" style="display:none;">
+        <h4>Create a New Vocabulary Page</h4>
+        <form id="create-page-form">
+          <div class="form-group">
+            <label for="page-name">Page Name:</label>
+            <input type="text" id="page-name" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label for="page-description">Page Description:</label>
+            <textarea id="page-description" class="form-control"></textarea>
+          </div>
+          <button type="submit" class="btn btn-success">Create Page</button>
+        </form>
+      </div>
     </div>
   </div>
 </div>

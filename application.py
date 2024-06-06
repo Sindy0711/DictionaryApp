@@ -7,6 +7,8 @@ from flask import Flask, session, render_template, redirect, request, url_for, f
 from flask_session import Session
 from flask_paginate import Pagination
 from dotenv import load_dotenv
+
+# Load environment variables
 load_dotenv()
 
 app = Flask(__name__)
@@ -14,38 +16,24 @@ app = Flask(__name__)
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 
+# Check if DATABASE_URL is set
 if not os.getenv("DATABASE_URL"):
     raise RuntimeError("DATABASE_URL is not set")
 
+# Configure Flask session
 app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
+# Configure SQLAlchemy
 engine = create_engine(os.getenv("DATABASE_URL"))
 db = scoped_session(sessionmaker(bind=engine))
 
-engine = create_engine(os.getenv("DATABASE_URL"))
-with engine.connect() as connection:
-    result = connection.execute(text("SELECT 1"))
-    print(result.fetchone())
-
-# Tạo bảng SavedWords nếu chưa tồn tại
-with engine.connect() as connection:
-    connection.execute(text('''
-        CREATE TABLE IF NOT EXISTS SavedWords (
-            id SERIAL PRIMARY KEY,
-            tu TEXT NOT NULL,
-            phienam TEXT NOT NULL,
-            nghia TEXT NOT NULL
-        )
-    '''))
-    connection.commit()
-## Helper 
+# Helper decorator for login required
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if session.get("email") is None:
-            return redirect(url_for("login"))
+        # Skip actual login check for demo purposes
         return f(*args, **kwargs)
     return decorated_function
 
@@ -66,10 +54,10 @@ def search():
             return render_template("error.html", message="Search field cannot be empty!")
 
         per_page = 20
-        offset = (page - 1) * 20
+        offset = (page - 1) * per_page
         query_like = f"%{query.lower()}%"
-        total = db.execute(text('SELECT COUNT(*) FROM tuvung WHERE LOWER(tu) LIKE :query'), {"query": query_like}).scalar()
-        result = db.execute(text('SELECT * FROM tuvung WHERE LOWER(tu) LIKE :query ORDER BY tu LIMIT :limit OFFSET :offset'), 
+        total = db.execute(text('SELECT COUNT(*) FROM TuVung WHERE LOWER(tu) LIKE :query'), {"query": query_like}).scalar()
+        result = db.execute(text('SELECT * FROM TuVung WHERE LOWER(tu) LIKE :query ORDER BY tu LIMIT :limit OFFSET :offset'), 
                              {"query": query_like, "limit": per_page, "offset": offset}).fetchall()
         pagination = Pagination(page=page, total=total, per_page=per_page, css_framework='bootstrap4')
 
@@ -79,49 +67,144 @@ def search():
         logging.exception("Error during search")
         return render_template("error.html", message=str(e))
 
+@app.route('/save_selected_words', methods=['POST'])
+def save_selected_words():
+    try:
+        selected_words = request.json
+        session['selected_words'] = selected_words
+        return jsonify({"status": "success"})
+    except Exception as e:
+        logging.exception("Error saving selected words")
+        return jsonify({"status": "error", "message": str(e)})
+
+@app.route('/create_vocabulary_page', methods=['POST'])
+def create_vocabulary_page():
+    try:
+        data = request.json
+        page_name = data.get('page_name')
+        page_description = data.get('page_description', '')  # Get description or use an empty string
+        selected_words = data.get('words', [])
+        if not page_name:
+            return jsonify({"status": "error", "message": "Page name is required"})
+
+        user_id = 1  # Fixed user_id
+        logging.debug(f"Creating page {page_name} for user {user_id}")
+        
+        result = db.execute(text('INSERT INTO TrangTuVung (ten_trang, mo_ta, ma_nguoi_dung) VALUES (:page_name, :page_description, :user_id) RETURNING ma_trang'),
+                            {"page_name": page_name, "page_description": page_description, "user_id": user_id})
+        page_id = result.fetchone()[0]
+
+        for word in selected_words:
+            db.execute(text('INSERT INTO TrangTuVungTuVung (ma_trang, tu, phienam, nghia) VALUES (:page_id, :tu, :phienam, :nghia)'),
+                       {"page_id": page_id, "tu": word['tu'], "phienam": word['phienam'], "nghia": word['nghia']})
+        db.commit()
+
+        return jsonify({"status": "success", "page_id": page_id})
+    except Exception as e:
+        logging.exception("Error creating vocabulary page")
+        return jsonify({"status": "error", "message": str(e)})
+
+
+@app.route('/save_words_to_existing_page', methods=['POST'])
+def save_words_to_existing_page():
+    try:
+        data = request.json
+        existing_page_id = data.get('existing_page_id')
+        selected_words = data.get('words', [])
+
+        if not existing_page_id:
+            return jsonify({"status": "error", "message": "Existing page ID is required"})
+
+        with engine.connect() as connection:
+            word_count = connection.execute(text('SELECT COUNT(*) FROM TrangTuVungTuVung WHERE ma_trang = :page_id'), {"page_id": existing_page_id}).scalar()
+            if word_count + len(selected_words) > 10:
+                return jsonify({"status": "error", "message": "The page already has too many words. Please create a new page."})
+
+            for word in selected_words:
+                connection.execute(text('INSERT INTO TrangTuVungTuVung (ma_trang, tu, phienam, nghia) VALUES (:page_id, :tu, :phienam, :nghia)'),
+                                   {"page_id": existing_page_id, "tu": word['tu'], "phienam": word['phienam'], "nghia": word['nghia']})
+            connection.commit()
+
+        return jsonify({"status": "success"})
+    except Exception as e:
+        logging.exception("Error saving words to existing page")
+        return jsonify({"status": "error", "message": str(e)})
+
 @app.route('/save_words', methods=['POST'])
 def save_words():
     try:
         selected_words = session.get('selected_words', [])
         if not selected_words:
-            flash("No words to save.")
+            flash("No words selected to save.")
             return redirect(url_for('search'))
 
-        for word in selected_words:
-            db.execute(text('INSERT INTO SavedWords (tu, phienam, nghia) VALUES (:tu, :phienam, :nghia)'),
-                       {"tu": word['tu'], "phienam": word['phienam'], "nghia": word['nghia']})
-        db.commit()
+        page_name = request.form.get('page_name')
+        existing_page_id = request.form.get('existing_page_id')
+
+        if not page_name and not existing_page_id:
+            flash("Please enter a page name or select an existing page.")
+            return redirect(url_for('search'))
+
+        user_id = 1  # Fixed user_id
+
+        with engine.connect() as connection:
+            if page_name:
+                result = connection.execute(text('INSERT INTO TrangTuVung (ten_trang, ma_nguoi_dung) VALUES (:page_name, :user_id) RETURNING ma_trang'),
+                                            {"page_name": page_name, "user_id": user_id})
+                page_id = result.fetchone()[0]
+            else:
+                page_id = existing_page_id
+
+            word_count = connection.execute(text('SELECT COUNT(*) FROM TrangTuVungTuVung WHERE ma_trang = :page_id'), {"page_id": page_id}).scalar()
+            if word_count + len(selected_words) > 10:
+                flash("The page already has too many words. Please create a new page.")
+                return redirect(url_for('search'))
+
+            for word in selected_words:
+                connection.execute(text('INSERT INTO TrangTuVungTuVung (ma_trang, tu, phienam, nghia) VALUES (:page_id, :tu, :phienam, :nghia)'),
+                                   {"page_id": page_id, "tu": word['tu'], "phienam": word['phienam'], "nghia": word['nghia']})
+            connection.commit()
+
         session['selected_words'] = []  # Clear session after saving
         flash("Words saved successfully.")
-        return redirect(url_for('saved_words'))  # Redirect to saved_words
+        return redirect(url_for('trang_tu_vung'))
     except Exception as e:
         logging.exception("Error saving words")
         return render_template("error.html", message=str(e))
 
-@app.route('/saved_words')
-def saved_words():
+
+@app.route('/trang_tu_vung')
+@login_required
+def trang_tu_vung():
     try:
-        saved_words = db.execute(text('SELECT * FROM SavedWords')).fetchall()
-        return render_template('saved_words.html', saved_words=saved_words)
+        user_id = 1  # Fixed user_id
+        logging.debug(f"Fetching vocabulary pages for user {user_id}")
+        
+        pages = db.execute(text('SELECT * FROM TrangTuVung WHERE ma_nguoi_dung = :user_id'), {"user_id": user_id}).fetchall()
+        logging.debug(f"Pages: {pages}")
+        
+        return render_template('trang_tu_vung.html', pages=pages)
     except Exception as e:
-        logging.exception("Error fetching saved words")
+        logging.exception("Error fetching vocabulary pages")
         return render_template("error.html", message=str(e))
 
-@app.route('/save_selected_words', methods=['POST'])
-def save_selected_words():
-    selected_words = request.get_json()
-    session['selected_words'] = selected_words
-    return jsonify({'status': 'success'})
-
-@app.route('/delete_word/<int:word_id>', methods=['POST'])
-def delete_word(word_id):
+@app.route('/view_page/<int:page_id>')
+@login_required
+def view_page(page_id):
     try:
-        db.execute(text('DELETE FROM SavedWords WHERE id = :id'), {"id": word_id})
-        db.commit()
-        return jsonify({'status': 'success'})
-    except Exception as e:
-        logging.exception("Error deleting word")
-        return jsonify({'status': 'error', 'message': str(e)})
+        # Lấy thông tin trang từ bảng TrangTuVung
+        page = db.execute(text('SELECT * FROM TrangTuVung WHERE ma_trang = :page_id'), {"page_id": page_id}).fetchone()
+        if not page:
+            flash("Page not found.")
+            return redirect(url_for('trang_tu_vung'))
 
-if __name__ == "__main__":
-    app.run(debug=True)
+        # Lấy danh sách từ vựng từ bảng TrangTuVungTuVung
+        words = db.execute(text('SELECT * FROM TrangTuVungTuVung WHERE ma_trang = :page_id'), {"page_id": page_id}).fetchall()
+        return render_template('view_page.html', page=page, words=words)
+    except Exception as e:
+        logging.exception("Error viewing page")
+        return render_template("error.html", message=str(e))
+
+
+if __name__ == '__main__':
+    app.run()

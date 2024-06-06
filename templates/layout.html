@@ -1,27 +1,27 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- Link Bootstrap -->
-    <link
-      rel="stylesheet"
-      href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
-      integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
-      crossorigin="anonymous"
-    />
-    <title>{% block title %} {% endblock %}</title>
-  </head>
-  <body>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <title>{% block title %}Từ điển{% endblock %}</title>
+</head>
+<body>
     <header>
-      <h1 class="text-center">Vocabulary App</h1>
-      <nav>
-        <a href="/">Home</a>
-        <a class="btn btn-outline-light btn-success mr-2" href="{{ url_for('search') }}" role="button">Search</a>
-        <a class="btn btn-outline-light btn-primary" href="{{ url_for('saved_words') }}" role="button">Saved Words</a>
-      </nav>
+        <h1 class="text-center">Vocabulary App</h1>
+        <nav>
+            <a href="/">Trang chủ</a>
+            <a class="btn btn-outline-light btn-success mr-2" href="{{ url_for('search') }}" role="button">Tìm kiếm</a>
+            <a class="btn btn-outline-light btn-primary" href="{{ url_for('trang_tu_vung') }}" role="button">Trang từ vựng</a>
+        </nav>
     </header>
-    <main>{% block content %}
-      {% endblock %}</main>
-  </body>
+    <main>
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+</body>
 </html>
