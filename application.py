@@ -237,5 +237,18 @@ def view_page(page_id):
         logging.exception("Error viewing page")
         return render_template("error.html", message=str(e))
 
+@app.route('/flashcard', methods=['GET'])
+def flashcard():
+    try:
+        flashcard = db.execute(text('SELECT * FROM tuvung ORDER BY RANDOM() LIMIT 1')).fetchone()
+        
+    except Exception as e:
+        return render_template("error.html", message=str(e))
+
+    if not flashcard:
+        return render_template("error.html", message="No flashcards available")
+
+    return render_template("flashcard.html", flashcard=flashcard)
+
 if __name__ == "__main__":
     app.run(debug=True)

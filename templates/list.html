@@ -28,7 +28,9 @@
           {% endfor %}
         </tbody>
       </table>
-
+      {% else %}
+      <p>No results found</p>
+      {% endif %}
       {% if pagination %}
       <div class="row">
         <div class="col">{{ pagination.links }}</div>
