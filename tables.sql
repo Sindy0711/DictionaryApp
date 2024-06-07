@@ -55,4 +55,10 @@ CREATE TABLE TienDoHocTu (
     FOREIGN KEY (ma_trang) REFERENCES TrangTuVung(ma_trang)
 );
 
+CREATE TABLE TrangTuVungTuVung (
+    ma_trang INT REFERENCES TrangTuVung(ma_trang),
+    tu VARCHAR(255),
+    phienam VARCHAR(255),
+    nghia TEXT
+);
 
