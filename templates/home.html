@@ -1,0 +1,18 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<header>
+  <h1 class="text-center">Vocabulary App</h1>
+  <nav>
+    <a href="{{ url_for('page')}}">Home</a>
+    <a
+      class="btn btn-outline-light btn-success mr-2"
+      href="{{ url_for('search') }}"
+      role="button"
+    >
+      Search
+    </a>
+    <a href="{{ url_for('flashcard')}}">flashcard</a>
+  </nav>
+</header>
+{% endblock %}

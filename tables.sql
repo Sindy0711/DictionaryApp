@@ -1,8 +1,8 @@
 -- Bảng NguoiDung
 CREATE TABLE NguoiDung (
     ma_nguoi_dung SERIAL PRIMARY KEY,
-    ten_nguoi_dung VARCHAR(255) UNIQUE NOT NULL,
     ten_dang_nhap VARCHAR(255) UNIQUE NOT NULL,
+    ten_nguoi_dung VARCHAR(255) UNIQUE NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     mat_khau VARCHAR(255) NOT NULL,
     ngay_tao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -25,14 +25,20 @@ CREATE TABLE TrangTuVung (
     icon TEXT,
     mo_ta TEXT,
     ma_nguoi_dung INT,
-    ngay_tao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ngay_tao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (ma_nguoi_dung) REFERENCES NguoiDung(ma_nguoi_dung)
 );
---bảng tuvungluuvaotrang
-CREATE TABLE TrangTuVungTuVung (
-    ma_trang INT REFERENCES TrangTuVung(ma_trang),
-    tu VARCHAR(255),
-    phienam VARCHAR(255),
-    nghia TEXT
+
+-- Bảng CauHoi
+CREATE TABLE CauHoi (
+    ma_cau_hoi SERIAL PRIMARY KEY,
+    cau_hoi TEXT NOT NULL,
+    lua_chon_a TEXT NOT NULL,
+    lua_chon_b TEXT NOT NULL,
+    lua_chon_c TEXT NOT NULL,
+    lua_chon_d TEXT NOT NULL,
+    dap_an TEXT NOT NULL
+    FOREIGN KEY (ma_trang) REFERENCES TrangTuVung(ma_trang)
 );
 
 -- Bảng TienDoHocTu
@@ -48,3 +54,5 @@ CREATE TABLE TienDoHocTu (
     FOREIGN KEY (ma_tu_vung) REFERENCES TuVung(ma_tu_vung),
     FOREIGN KEY (ma_trang) REFERENCES TrangTuVung(ma_trang)
 );
+
+
