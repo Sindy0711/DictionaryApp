@@ -9,28 +9,57 @@
 </head>
 <body>
     <div class="container">
-        <h1 class="my-4">Trang từ vựng của tôi</h1>
-        <form id="create-page-form" action="{{ url_for('create_vocabulary_page') }}" method="post">
-            <div class="form-group">
-                <label for="page-name">Tên trang</label>
-                <input type="text" class="form-control" id="page-name" name="page_name" required>
+        <div class="row">
+            <div class="col">
+                <h1 class="my-4">Trang từ vựng của tôi</h1>
             </div>
-            <div class="form-group">
-                <label for="page-description">Mô tả</label>
-                <textarea class="form-control" id="page-description" name="page_description"></textarea>
+        </div>
+        <div class="row">
+            <div class="col">
+                <h2 class="my-4">Danh sách trang từ vựng</h2>
+                <ul id="pages-list">
+                    {% for page in pages %}
+                    <li>
+                        <a href="{{ url_for('view_page', page_id=page.ma_trang) }}">{{ page.ten_trang }}</a>
+                        <p>{{ page.mo_ta or "Không có mô tả" }}</p>
+                    </li>
+                    {% endfor %}
+                </ul>
             </div>
-            <button type="submit" class="btn btn-primary">Tạo trang từ vựng</button>
-        </form>
-        <h2 class="my-4">Danh sách trang từ vựng</h2>
-        <ul id="pages-list">
-            {% for page in pages %}
-            <li>
-                <a href="{{ url_for('view_page', page_id=page.ma_trang) }}">{{ page.ten_trang }}</a>
-                <p>{{ page.mo_ta or "Không có mô tả" }}</p>
-            </li>
-            {% endfor %}
-        </ul>
+        </div>
+        <div class="row">
+            <div class="col">
+                <div class="float-right">
+                    <button type="button" class="btn btn-primary" id="create-page-btn">Tạo trang mới</button>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <form id="create-page-form" action="{{ url_for('create_vocabulary_page') }}" method="post" style="display: none;">
+                    <div class="form-group">
+                        <label for="page-name">Tên trang</label>
+                        <input type="text" class="form-control" id="page-name" name="page_name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="page-description">Mô tả</label>
+                        <textarea class="form-control" id="page-description" name="page_description"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Tạo trang từ vựng</button>
+                </form>
+            </div>
+        </div>
     </div>
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script>
+        document.getElementById("create-page-btn").addEventListener("click", function() {
+            var form = document.getElementById("create-page-form");
+            if (form.style.display === "none") {
+                form.style.display = "block";
+            } else {
+                form.style.display = "none";
+            }
+        });
+    </script>
 </body>
 </html>
