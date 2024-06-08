@@ -11,12 +11,14 @@
         <div class="cell">Từ</div>
         <div class="cell">Phiên Âm</div>
         <div class="cell">Nghĩa</div>
+        <div class="cell">Điểm</div>
       </div>
       {% for word in words %}
       <div class="row">
         <div class="cell">{{ word.tu }}</div>
         <div class="cell">{{ word.phienam }}</div>
         <div class="cell">{{ word.nghia }}</div>
+        <div class="cell">{{ word.diem }}</div>
       </div>
       {% endfor %}
     </div>

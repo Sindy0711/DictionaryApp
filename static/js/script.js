@@ -3,6 +3,28 @@ document.addEventListener('DOMContentLoaded', () => {
   const selectedWordsContainer = document.getElementById('selected-words');
   const saveWordsBtn = document.getElementById('save-words-btn');
   const selectPageForm = document.getElementById('select-page-form');
+  const existingPageSelect = document.getElementById('existing-page');
+
+  async function loadVocabularyPages() {
+    try {
+      const response = await fetch('/api/get_vocabulary_pages');
+      const data = await response.json();
+      if (data.status === 'success') {
+        data.pages.forEach(page => {
+          const option = document.createElement('option');
+          option.value = page.ma_trang;
+          option.textContent = page.ten_trang;
+          existingPageSelect.appendChild(option);
+        });
+      } else {
+        alert(`Lỗi: ${data.message}`);
+      }
+    } catch (error) {
+      
+    }
+  }
+
+  loadVocabularyPages();
 
   document.querySelectorAll('.btn-select').forEach(button => {
     button.addEventListener('click', () => {
@@ -31,7 +53,6 @@ document.addEventListener('DOMContentLoaded', () => {
     selectPageForm.style.display = selectedWords.length > 0 ? 'block' : 'none';
   }
 
-  // Xử lý khi người dùng chọn lưu vào trang đã có
   selectPageForm.addEventListener('submit', async (event) => {
     event.preventDefault();
     const existingPageId = document.getElementById('existing-page').value;
@@ -60,6 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
+
 
 //tạo trang mới
 document.addEventListener('DOMContentLoaded', () => {
@@ -101,4 +123,3 @@ document.addEventListener('DOMContentLoaded', () => {
       }
   });
 });
-

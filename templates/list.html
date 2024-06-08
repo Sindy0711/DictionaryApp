@@ -18,9 +18,9 @@
         <tbody>
           {% for item in result %}
           <tr>
-            <td>{{item.tu}}</td>
-            <td>{{item.phienam}}</td>
-            <td>{{item.nghia}}</td>
+            <td>{{ item.tu }}</td>
+            <td>{{ item.phienam }}</td>
+            <td>{{ item.nghia }}</td>
             <td>
               <button class="btn btn-secondary btn-select" data-tu="{{item.tu}}" data-phienam="{{item.phienam}}" data-nghia="{{item.nghia}}" data-ma_tu_vung="{{item.ma_tu_vung}}">Chọn</button>
             </td>
@@ -29,7 +29,7 @@
         </tbody>
       </table>
       {% else %}
-      <p>No results found</p>
+      <p>Không tìm thấy kết quả nào</p>
       {% endif %}
       {% if pagination %}
       <div class="row">
@@ -39,24 +39,22 @@
     </div>
 
     <div class="col-md-6 mt-5">
-      <h4>Selected Words (Tối đa 10 từ)</h4>
+      <h4>Các từ đã chọn (Tối đa 10 từ)</h4>
       <div id="selected-words">
-        <!-- Selected words will be displayed here -->
+        <!-- Các từ đã chọn sẽ hiển thị ở đây -->
       </div>
-      <button id="save-words-btn" class="btn btn-primary" disabled>Lưu từ</button
+      <button id="save-words-btn" class="btn btn-primary" disabled>Lưu từ</button>
       <div id="select-page-form" style="display:none;">
-        <h4>Select Existing Vocabulary Page</h4>
+        <h4>Chọn trang từ vựng hiện có</h4>
         <form id="select-page-form">
           <div class="form-group">
             <label for="existing-page">Chọn trang:</label>
             <select id="existing-page" class="form-control">
               <option value="">--Chọn trang--</option>
-              {% for page in existing_pages %}
-              <option value="{{ page.ma_trang }}">{{ page.ten_trang }}</option>
-              {% endfor %}
+              <!-- Các trang sẽ được thêm động ở đây -->
             </select>
           </div>
-          <button type="submit" class="btn btn-success">Save to Page</button>
+          <button type="submit" class="btn btn-success">Lưu vào trang</button>
         </form>
       </div>
     </div>
