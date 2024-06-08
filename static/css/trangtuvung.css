@@ -50,3 +50,6 @@ ul li a {
 ul li:hover {
     background: #d6d8db;
 }
+#pages-list .list-group-item {
+    margin-bottom: 10px; 
+}

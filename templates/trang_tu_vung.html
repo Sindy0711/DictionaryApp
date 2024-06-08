@@ -26,6 +26,7 @@
             {% for page in pages %}
             <li>
                 <a href="{{ url_for('view_page', page_id=page.ma_trang) }}">{{ page.ten_trang }}</a>
+                <p>{{ page.mo_ta or "Không có mô tả" }}</p>
             </li>
             {% endfor %}
         </ul>
