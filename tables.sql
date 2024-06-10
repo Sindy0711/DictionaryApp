@@ -37,7 +37,8 @@ CREATE TABLE CauHoi (
     lua_chon_b TEXT NOT NULL,
     lua_chon_c TEXT NOT NULL,
     lua_chon_d TEXT NOT NULL,
-    dap_an TEXT NOT NULL
+    dap_an TEXT NOT NULL,
+    ma_trang INT,
     FOREIGN KEY (ma_trang) REFERENCES TrangTuVung(ma_trang)
 );
 
@@ -57,6 +58,7 @@ CREATE TABLE TienDoHocTu (
 
 CREATE TABLE TrangTuVungTuVung (
     ma_trang INT REFERENCES TrangTuVung(ma_trang),
+    ma_tu_vung INT REFERENCES TuVung(ma_tu_vung),
     tu VARCHAR(255),
     phienam VARCHAR(255),
     nghia TEXT

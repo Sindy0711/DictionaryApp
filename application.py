@@ -62,7 +62,7 @@ def validate_password(password):
 @app.route('/')
 def index():
     if session.get("email") is not None:
-        return render_template('home.html')
+        return render_template('index.html')
     else:
         return render_template('index.html')
 
@@ -78,20 +78,23 @@ def register():
         email = request.form.get("email")
         mat_khau1 = request.form.get("mat_khau1")
         mat_khau2 = request.form.get("mat_khau2")
-        password_error = validate_password(mat_khau1)
-        if not request.form.get("ten_dang_nhap"):
-            return render_template("error.html", message="Phải cung cấp Tên đăng nhập")
-        if not request.form.get("ten_nguoi_dung"):
-            return render_template("error.html", message="Phải cung cấp Tên người dùng")
-        elif not request.form.get("email"):
-            return render_template("error.html", message="Phải cung cấp Email")
-        elif not mat_khau1 or not mat_khau2:
-            return render_template("error.html", message="Phải cung cấp mật khẩu")
-        elif password_error:
-            return render_template("error.html", message=password_error)
-        elif mat_khau1 != mat_khau2:
-            return render_template("error.html", message="Mật khẩu không khớp")
 
+        for field in [ten_nguoi_dung , ten_dang_nhap , email , mat_khau1, mat_khau2]:
+            if not field:
+                return render_template("register.html", message="Phải điền tất cả các trường") 
+        
+         # Kiểm tra xem mật khẩu có hợp lệ không
+        password_error = validate_password(mat_khau1)
+        if password_error:
+            return render_template("register.html", message=password_error)
+
+        # Kiểm tra đồng bộ
+        if mat_khau1 != mat_khau2:
+            return render_template("register.html", message="Mật khẩu không khớp")
+
+        existing_user = db.execute(text("SELECT * FROM NguoiDung WHERE email = :email"), {"email": email}).fetchone()
+        if existing_user:
+            return render_template("register.html", message="Email đã được sử dụng")
         # end validation
         else:
 
@@ -99,15 +102,15 @@ def register():
                 db.execute(text("INSERT INTO NguoiDung(ten_dang_nhap, ten_nguoi_dung, email, mat_khau) VALUES (:ten_dang_nhap, :ten_nguoi_dung, :email, :mat_khau)"),
                            {"ten_dang_nhap": ten_dang_nhap, "ten_nguoi_dung": ten_nguoi_dung, "email": email, "mat_khau": generate_password_hash(mat_khau1)})
             except Exception as e:
-                return render_template("error.html", message=e)
+                return render_template("register.html", message=e)
 
             db.commit()
 
             Q = db.execute(text("SELECT * FROM NguoiDung WHERE email LIKE :email AND ten_nguoi_dung LIKE :ten_nguoi_dung"), {"email": email , "ten_nguoi_dung": ten_nguoi_dung }).fetchone()
             print(Q.ma_nguoi_dung)
 
-            session["ten_nguoi_dung"] = Q.ten_nguoi_dung
             session["ma_nguoi_dung"] = Q.ma_nguoi_dung
+            session["ten_nguoi_dung"] = Q.ten_nguoi_dung
             session["email"] = Q.email
             session["logged_in"] = True
 
@@ -151,6 +154,7 @@ def logout():
     return redirect(url_for("index"))
 
 # BUSINESS FUNCTION
+
 @app.route('/page', methods=['GET'])
 def page():
     page = request.args.get(get_page_parameter(), type=int, default=1)
@@ -420,8 +424,8 @@ def flashcard():
 
     return render_template("flashcard.html", flashcard=flashcard)
 
-@app.route('/add_question', methods=['GET', 'POST'])
-def add_question():
+@app.route('/multiple_choice', methods=['GET', 'POST'])
+def multiple_choice():
     if request.method == 'POST':
         ma_trang = request.form.get('ma_trang')
         ma_nguoi_dung = request.form.get('ma_nguoi_dung')
@@ -449,7 +453,7 @@ def add_question():
 
         return redirect(url_for('page'))
 
-    return render_template('add_question.html')
+    return render_template('multiple_choice.html')
 
 
 if __name__ == "__main__":
