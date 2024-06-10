@@ -1,14 +1,10 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trang từ vựng của tôi</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/trangtuvung.css') }}">
-</head>
-<body>
-    <div class="container">
+
+{% extends "layout.html" %}
+
+{% block title %} Trang từ vựng của tôi {% endblock %}
+
+{% block content %}
+      <div class="container">
         <h1 class="my-4">Trang từ vựng của tôi</h1>
         <form id="create-page-form" action="{{ url_for('create_vocabulary_page') }}" method="post">
             <div class="form-group">
@@ -32,5 +28,4 @@
         </ul>
     </div>
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
-</body>
-</html>
+{% endblock content %}

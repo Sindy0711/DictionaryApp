@@ -1,3 +1,14 @@
+/* Common  */
+
+body {
+    font-family: Arial, sans-serif;
+}
+
+.btn {
+  margin-top: 18px;
+}
+
+/*  */
 .card {
   --bg: #f7f7f8;
   --hover-bg: #bebfb0;
@@ -209,4 +220,8 @@ table.table.\.list {
 
 .card-text {
   font-style: italic;
+}
+
+.pagination .active .sr-only {
+  display: none;
 }

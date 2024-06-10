@@ -1,5 +1,4 @@
-import logging  # Import the logging module
-import os
+import os , re , logging
 from functools import wraps
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import scoped_session, sessionmaker
@@ -46,6 +45,20 @@ def get_current_user_id():
         logging.debug("No user_id found in session")
     return user_id
 
+def validate_password(password):
+    if len(password) < 8:
+        return "Mật khẩu phải có ít nhất 8 ký tự"
+    elif not any(char.isdigit() for char in password):
+        return "Mật khẩu phải chứa ít nhất một số"
+    elif not any(char.isalpha() for char in password):
+        return "Mật khẩu phải chứa ít nhất một chữ cái"
+    elif not re.search('[^a-zA-Z0-9]', password):
+        return "Mật khẩu phải chứa ít nhất một ký tự đặc biệt"
+    return None
+
+
+
+
 @app.route('/')
 def index():
     if session.get("email") is not None:
@@ -60,33 +73,37 @@ def register():
     if request.method == "GET":
         return render_template("register.html")
     else:
+        ten_nguoi_dung = request.form.get("ten_nguoi_dung")
+        ten_dang_nhap = request.form.get("ten_dang_nhap")
+        email = request.form.get("email")
+        mat_khau1 = request.form.get("mat_khau1")
+        mat_khau2 = request.form.get("mat_khau2")
+        password_error = validate_password(mat_khau1)
         if not request.form.get("ten_dang_nhap"):
             return render_template("error.html", message="Phải cung cấp Tên đăng nhập")
         if not request.form.get("ten_nguoi_dung"):
             return render_template("error.html", message="Phải cung cấp Tên người dùng")
         elif not request.form.get("email"):
             return render_template("error.html", message="Phải cung cấp Email")
-        elif not request.form.get("mat_khau1") or not request.form.get("mat_khau2"):
+        elif not mat_khau1 or not mat_khau2:
             return render_template("error.html", message="Phải cung cấp mật khẩu")
-        elif request.form.get("mat_khau1") != request.form.get("mat_khau2"):
+        elif password_error:
+            return render_template("error.html", message=password_error)
+        elif mat_khau1 != mat_khau2:
             return render_template("error.html", message="Mật khẩu không khớp")
 
         # end validation
         else:
-            ten_nguoi_dung = request.form.get("ten_nguoi_dung")
-            ten_dang_nhap = request.form.get("ten_dang_nhap")
-            email = request.form.get("email")
-            mat_khau = request.form.get("mat_khau1")
 
             try:
                 db.execute(text("INSERT INTO NguoiDung(ten_dang_nhap, ten_nguoi_dung, email, mat_khau) VALUES (:ten_dang_nhap, :ten_nguoi_dung, :email, :mat_khau)"),
-                           {"ten_dang_nhap": ten_dang_nhap, "ten_nguoi_dung": ten_nguoi_dung, "email": email, "mat_khau": generate_password_hash(mat_khau)})
+                           {"ten_dang_nhap": ten_dang_nhap, "ten_nguoi_dung": ten_nguoi_dung, "email": email, "mat_khau": generate_password_hash(mat_khau1)})
             except Exception as e:
                 return render_template("error.html", message=e)
 
             db.commit()
 
-            Q = db.execute(text("SELECT * FROM NguoiDung WHERE email LIKE :email"), {"email": email}).fetchone()
+            Q = db.execute(text("SELECT * FROM NguoiDung WHERE email LIKE :email AND ten_nguoi_dung LIKE :ten_nguoi_dung"), {"email": email , "ten_nguoi_dung": ten_nguoi_dung }).fetchone()
             print(Q.ma_nguoi_dung)
 
             session["ten_nguoi_dung"] = Q.ten_nguoi_dung
@@ -136,14 +153,18 @@ def logout():
 # BUSINESS FUNCTION
 @app.route('/page', methods=['GET'])
 def page():
-    # Function implementation
-    pass
+    page = request.args.get(get_page_parameter(), type=int, default=1)
+    offset = (page - 1) * ITEMS_PER_PAGE
 
-# Somewhere else in the code
-@app.route('/page', methods=['GET'])
-def another_page_function():
-    # Another implementation
-    pass
+    try:
+        result = db.execute(text('SELECT * FROM tuvung ORDER BY ma_tu_vung LIMIT :limit OFFSET :offset'), {"limit": ITEMS_PER_PAGE, "offset": offset}).fetchall()
+        total_results = db.execute(text('SELECT COUNT(*) FROM tuvung')).scalar()
+    except Exception as e:
+        return render_template("error.html", message=str(e))
+
+    pagination = Pagination(page=page, total=total_results, search=False, record_name='result', per_page=ITEMS_PER_PAGE)
+
+    return render_template("list.html", result=result, pagination=pagination, display_msg=False)
 
 @app.route('/search', methods=['GET', 'POST'])
 def search():
@@ -165,7 +186,7 @@ def search():
 @login_required
 def create_vocabulary_page():
     try:
-        user_id = session.get("ma_nguoi_dung")
+        user_id = get_current_user_id()
         data = request.json
         page_name = data.get('page_name')
         page_description = data.get('page_description', '')
