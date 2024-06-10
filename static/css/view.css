@@ -18,14 +18,6 @@ body {
     background-color: #f9f9f9;
 }
 
-.row:hover .cell {
-    background-color: #f1f1f1;
-}
-
-.btn:hover {
-    background-color: #0056b3;
-}
-
 .content-wrapper {
     border: 2px solid #ddd;
     padding: 20px;

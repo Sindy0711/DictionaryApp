@@ -1,0 +1,36 @@
+{% extends "layout.html" %}
+
+{% block title %} Multiple Choice Quiz {% endblock %}
+
+{% block body %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-6">
+            <h1 class="text-center">Multiple Choice Quiz</h1>
+            <form action="{{ url_for('multiple_choice') }}" method="post">
+                <div class="form-group">
+                    <label for="question">Question:</label>
+                    <input type="text" class="form-control" id="question" name="cau_hoi" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="choice_a">Choice A:</label>
+                    <input type="text" class="form-control" id="choice_a" name="choice_a" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="choice_b">Choice B:</label>
+                    <input type="text" class="form-control" id="choice_b" name="choice_b" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="choice_c">Choice C:</label>
+                    <input type="text" class="form-control" id="choice_c" name="choice_c" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="correct_choice">Correct Choice:</label>
+                    <input type="text" class="form-control" id="correct_choice" name="correct_choice" readonly>
+                </div>
+                <button type="submit" class="btn btn-primary">Submit Answer</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
