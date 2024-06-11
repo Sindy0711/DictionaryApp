@@ -21,19 +21,19 @@
               <ul class="navbar-nav ml-auto">
               {% if session.logged_in %}
                 <li class="nav-item active">
-                  <h6 class="nav-link color-default"> Welcome, {{ session.ten_nguoi_dung }}</h6>
+                  <h6 class="nav-link color-default"> Welcome, {{ session.full_name }}</h6>
                 </li>
                 <!-- <li class="nav-item">
                   <a class="btn btn-outline-light btn-success mr-2" href="{{ url_for('search') }}" role="button">Tìm kiếm</a>
                 </li> -->
                 <li class="nav-item">
                   <li>
-                    <a href="{{ url_for('logout') }}"><button class="btn btn-primary float-right" type="submit">Đăng xuất</button></a>
+                    <a href="{{ url_for('logout') }}"><button class="btn btn-primary float-right" type="submit">Log out</button></a>
                   </li>
                 </li>
               {% else %}
                 <li class="nav-item">
-                  <a href="{{ url_for('register')}}"><button class="btn btn-default" type="submit">Đăng ký</button></a>
+                  <a href="{{ url_for('register')}}"><button class="btn btn-default" type="submit">Sign up</button></a>
                 </li>
               {% endif %}
               </ul>

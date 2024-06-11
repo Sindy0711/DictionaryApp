@@ -26,21 +26,21 @@ def main():
         with open("dataapp.csv", "r" , encoding="utf-8",  errors='ignore') as f:
             reader = csv.reader(f)
             next(reader)
-            for ma_tu_vung, tu, phienam, nghia, motachung in reader:
+            for word_id, word, pronunciation, meaning, description in reader:
                 
-                tu = convert_html_chars(replace_br_and_plus(clean_html(tu)))
-                phienam = convert_html_chars(replace_br_and_plus(clean_html(phienam)))
-                nghia = convert_html_chars(replace_br_and_plus(clean_html(nghia)))
-                motachung = convert_html_chars(replace_br_and_plus(clean_html(motachung)))
+                word = convert_html_chars(replace_br_and_plus(clean_html(word)))
+                pronunciation = convert_html_chars(replace_br_and_plus(clean_html(pronunciation)))
+                meaning = convert_html_chars(replace_br_and_plus(clean_html(meaning)))
+                description = convert_html_chars(replace_br_and_plus(clean_html(description)))
 
                 try:
                     db.execute(
-                        text("INSERT INTO TuVung (tu, phienam, nghia, motachung) VALUES (:tu, :phienam, :nghia, :motachung)"), {"tu": tu, "phienam": phienam, "nghia": nghia, "motachung" : motachung})
+                        text("INSERT INTO Vocabulary (word, pronunciation, meaning, description) VALUES (:word, :pronunciation, :meaning, :description)"), {"word": word, "pronunciation": pronunciation, "meaning": meaning, "description" : description})
                     db.commit()
                     
-                    print(f"Added word with tu: {tu} phienam: {phienam}  nghia: {nghia} motachung: {motachung} ")
+                    print(f"Added word with word: {word} pronunciation: {pronunciation}  meaning: {meaning} description: {description} ")
                 except IntegrityError:
-                    print(f"Word {tu} already exists in the database.")
+                    print(f"Word {word} already exists in the database.")
     except Exception as e:
         print(f"An error occurred: {e}")
 

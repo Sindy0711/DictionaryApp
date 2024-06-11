@@ -11,23 +11,23 @@
               <h4 class="card-title mb-4 mt-1 title">Login</h4>
                     <form action="/login" method="post">
                     <div class="form-group">
-                        <label>Tên đăng nhập</label>
-                        <input name="ten_dang_nhap" class="form-control" placeholder="Tên đăng nhập" type="text" required>
+                        <label>username</label>
+                        <input name="username" class="form-control" placeholder="username" type="text" required>
                     </div> 
                     <div class="form-group">
                         <label>Email</label>
                         <input name="email" class="form-control" placeholder="Email" type="email" required>
                     </div> 
                     <div class="form-group">
-                        <label>Mật khẩu</label>
-                        <input name="mat_khau" class="form-control" placeholder="******" type="password" required>
+                        <label>Password</label>
+                        <input name="password" class="form-control" placeholder="******" type="password" required>
                     </div> 
                     <div class="form-group">
                     </div> 
                     <div class="form-group">
-                        <button type="submit" class="btn submit"> Đăng nhập  </button>
+                        <button type="submit" class="btn submit"> Log in  </button>
                     </div> 
-                    <p class="text-center"><a href="{{url_for("register")}}" class="">Không có tài khoản ?</a></p>
+                    <p class="text-center"><a href="{{url_for("register")}}" class="">Do not have an account ?</a></p>
                   </form>
               </div>
         </div>
