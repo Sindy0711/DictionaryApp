@@ -1,4 +1,5 @@
 import logging  # Import the logging module
+import random 
 import os
 from functools import wraps
 from sqlalchemy import create_engine, text
@@ -145,22 +146,38 @@ def another_page_function():
     # Another implementation
     pass
 
-@app.route('/search', methods=['GET', 'POST'])
+@app.route('/search', methods=['GET', 'POST'], endpoint='search')
 def search():
     if request.method == "GET":
         return render_template("search.html")
     else:
         query = request.form.get("input-search")
         if query is None:
-            return render_template("error.html", message="Search field can not be empty!")
+            return render_template("error.html", message="Search field cannot be empty!")
         try:
             result = db.execute(text('SELECT * FROM tuvung WHERE LOWER(tu) LIKE :query'), {"query": "%" + query.lower() + "%"}).fetchall()
         except Exception as e:
-            return render_template("error.html", message=e)
+            return render_template("error.html", message=str(e))
         if not result:
             return render_template("error.html", message="Your query did not match any documents")
         return render_template("list.html", result=result)
 
+@app.route('/saved_words', methods=['GET', 'POST'], endpoint='search_saved_words')
+def search_saved_words():
+    if request.method == "GET":
+        return render_template("saved_words.html")
+    else:
+        query = request.form.get("input-saved_words")
+        if query is None:
+            return render_template("error.html", message="Search field cannot be empty!")
+        try:
+            result = db.execute(text('SELECT * FROM tuvung WHERE LOWER(tu) LIKE :query'), {"query": "%" + query.lower() + "%"}).fetchall()
+        except Exception as e:
+            return render_template("error.html", message=str(e))
+        if not result:
+            return render_template("error.html", message="Your query did not match any documents")
+        return render_template("list_saved_words.html", result=result)
+    
 @app.route('/create_vocabulary_page', methods=['POST'])
 @login_required
 def create_vocabulary_page():
@@ -187,7 +204,7 @@ def create_vocabulary_page():
     except Exception as e:
         logging.exception("Error creating vocabulary page")
         return jsonify({"status": "error", "message": str(e)})
-
+    
 @app.route('/save_page', methods=['GET', 'POST'])
 @login_required
 def save_page():
@@ -284,50 +301,56 @@ def save_words_to_existing_page():
         return jsonify({"status": "error", "message": str(e)})
 
 
-@app.route('/save_words', methods=['POST'])
-def save_words():
-    try:
-        selected_words = session.get('selected_words', [])
-        if not selected_words:
-            flash("No words selected to save.")
-            return redirect(url_for('search'))
-
+@app.route('/saved_words', methods=['GET', 'POST'])
+@login_required
+def saved_words():
+    user_id = get_current_user_id()
+    if request.method == 'POST':
+        # Handle the form submission
+        selected_words = request.form.getlist('selected_words')
         page_name = request.form.get('page_name')
         existing_page_id = request.form.get('existing_page_id')
 
-        if not page_name and not existing_page_id:
-            flash("Please enter a page name or select an existing page.")
-            return redirect(url_for('search'))
+        try:
+            if not page_name and not existing_page_id:
+                flash("Please enter a page name or select an existing page.")
+                return redirect(url_for('saved_words'))
 
-        # Retrieve user_id from session
-        user_id = session.get("ma_nguoi_dung")
+            with engine.connect() as connection:
+                if page_name:
+                    result = connection.execute(
+                        text('INSERT INTO TrangTuVung (ten_trang, ma_nguoi_dung) VALUES (:page_name, :user_id) RETURNING ma_trang'),
+                        {"page_name": page_name, "user_id": user_id})
+                    page_id = result.fetchone()[0]
+                else:
+                    page_id = existing_page_id
 
-        with engine.connect() as connection:
-            if page_name:
-                result = connection.execute(text('INSERT INTO TrangTuVung (ten_trang, ma_nguoi_dung) VALUES (:page_name, :user_id) RETURNING ma_trang'),
-                                            {"page_name": page_name, "user_id": user_id})
-                page_id = result.fetchone()[0]
-            else:
-                page_id = existing_page_id
+                insert_query = text('INSERT INTO TienDoHocTu (ma_trang, ma_nguoi_dung, ma_tu_vung, diem) VALUES (:page_id, :user_id, :ma_tu_vung, 0)')
+                for word in selected_words:
+                    connection.execute(insert_query, {"page_id": page_id, "user_id": user_id, "ma_tu_vung": word})
 
-            word_count = connection.execute(text('SELECT COUNT(*) FROM TrangTuVungTuVung WHERE ma_trang = :page_id'), {"page_id": page_id}).scalar()
-            if word_count + len(selected_words) > 10:
-                flash("The page already has too many words. Please create a new page.")
-                return redirect(url_for('search'))
+                connection.commit()
 
-            # Insert selected words into TrangTuVungTuVung table
-            insert_query = text('INSERT INTO TrangTuVungTuVung (ma_trang, tu, phienam, nghia) VALUES (:page_id, :tu, :phienam, :nghia)')
-            for word in selected_words:
-                connection.execute(insert_query, {"page_id": page_id, "tu": word['tu'], "phienam": word['phienam'], "nghia": word['nghia']})
-            connection.commit()
+            flash("Words saved successfully.")
+            return redirect(url_for('saved_words'))
 
-        session['selected_words'] = []  # Clear session after saving
-        flash("Words saved successfully.")
-        return redirect(url_for('trang_tu_vung'))
-    except Exception as e:
-        logging.exception("Error saving words")
-        return render_template("error.html", message=str(e))
-    
+        except Exception as e:
+            logging.exception("Error saving words")
+            return render_template("error.html", message=str(e))
+
+    else:
+        try:
+            existing_pages = db.execute(
+                text('SELECT ma_trang, ten_trang FROM TrangTuVung WHERE ma_nguoi_dung = :user_id'), 
+                {"user_id": user_id}).fetchall()
+
+            logging.debug(f"Fetched existing pages: {existing_pages}")
+
+            return render_template('saved_words.html', existing_pages=existing_pages)
+        except Exception as e:
+            logging.exception("Error fetching vocabulary pages")
+            return render_template("error.html", message=str(e))
+        
 @app.route('/trang_tu_vung')
 @login_required
 def trang_tu_vung():
@@ -429,6 +452,59 @@ def add_question():
         return redirect(url_for('page'))
 
     return render_template('add_question.html')
+
+@app.route('/matching_game')
+@login_required
+def matching_game():
+    user_id = get_current_user_id()
+    page_id = request.args.get('page_id')
+
+    if not page_id:
+        flash("Page ID is required.")
+        return redirect(url_for('trang_tu_vung'))
+
+    try:
+        words = db.execute(
+        text('SELECT * FROM TuVung WHERE ma_tu_vung IN (SELECT ma_tu_vung FROM TienDoHocTu WHERE ma_trang = :page_id AND ma_nguoi_dung = :user_id) ORDER BY RANDOM() LIMIT 5'),
+        {"page_id": page_id, "user_id": user_id}
+    ).fetchall()
+
+        if not words:
+            flash("No words found for this page.")
+            return redirect(url_for('trang_tu_vung'))
+
+        # Shuffle the meanings
+        meanings = [word.nghia for word in words]
+        random.shuffle(meanings)
+
+        return render_template('matching_game.html', words=words, meanings=meanings)
+    except Exception as e:
+        logging.exception("Error fetching words for matching game")
+        return render_template("error.html", message=str(e))
+
+@app.route('/check_matching_answers', methods=['POST'])
+@login_required
+def check_matching_answers():
+    data = request.get_json()
+    user_id = get_current_user_id()
+
+    try:
+        correct_answers = db.execute(
+            text('SELECT ma_tu_vung, nghia FROM TuVung WHERE ma_tu_vung IN :word_ids'),
+            {"word_ids": tuple(item['ma_tu_vung'] for item in data)}
+        ).fetchall()
+
+        correct_answers_dict = {item[0]: item[1] for item in correct_answers}  # Use integer indices
+
+        score = 0
+        for item in data:
+            if correct_answers_dict.get(item['ma_tu_vung']) == item['nghia']:
+                score += 1
+
+        return jsonify({"status": "success", "message": f"Bạn đã trả lời đúng {score}/{len(data)} từ.", "correct_answers": correct_answers_dict})
+    except Exception as e:
+        logging.exception("Error checking matching answers")
+        return jsonify({"status": "error", "message": str(e)})
 
 
 if __name__ == "__main__":

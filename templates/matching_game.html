@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matching Game</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f4f4f4;
+        }
+
+        h1 {
+            margin-top: 20px;
+        }
+
+        .game-wrapper {
+            width: 80%;
+            margin-top: 20px;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .game-container {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .words-container, .meanings-container {
+            width: 45%;
+        }
+
+        .words, .meanings {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-height: 200px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+
+        .word, .meaning {
+            background-color: #ffffff;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+        }
+
+        .correct {
+            background-color: #d4edda; /* green */
+            border-color: #c3e6cb;
+        }
+
+        .incorrect {
+            background-color: #f8d7da; /* red */
+            border-color: #f5c6cb;
+        }
+
+        #checkAnswers {
+            margin-top: 20px;
+            padding: 10px 20px;
+            border: none;
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #checkAnswers:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>Matching Game</h1>
+    <div class="game-wrapper">
+        <div class="game-container">
+            <div class="words-container">
+                <div class="words">
+                    {% for word in words %}
+                        <div class="word" data-id="{{ word.ma_tu_vung }}">{{ word.tu }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="meanings-container">
+                <div class="meanings">
+                    {% for meaning in meanings %}
+                        <div class="meaning" data-meaning="{{ meaning }}">{{ meaning }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="float-right">
+            <button type="button" class="btn btn-primary mt-2" id="check-answers-btn">Check</button>
+            <button type="button" class="btn btn-success mt-2 mr-2" onclick="window.location.href='{{ url_for('trang_tu_vung') }}'">Back to Pages</button>
+        </div>
+    </div>
+    <script>
+        $(function() {
+            $(".meanings").sortable();
+            $(".meanings").disableSelection();
+
+            $("#checkAnswers").click(function() {
+                var results = [];
+                $(".word").each(function(index) {
+                    var wordId = $(this).data("id");
+                    var meaning = $(".meanings .meaning").eq(index).data("meaning");
+                    results.push({ "ma_tu_vung": wordId, "nghia": meaning });
+                });
+
+                $.ajax({
+                    type: "POST",
+                    url: "{{ url_for('check_matching_answers') }}",
+                    data: JSON.stringify(results),
+                    contentType: "application/json",
+                    success: function(response) {
+                        $(".word").each(function(index) {
+                            var wordId = $(this).data("id");
+                            var meaning = $(".meanings .meaning").eq(index).data("meaning");
+                            var correctMeaning = response.correct_answers[wordId];
+                            if (correctMeaning === meaning) {
+                                $(this).addClass("correct").removeClass("incorrect");
+                                $(".meanings .meaning").eq(index).addClass("correct").removeClass("incorrect");
+                            } else {
+                                $(this).addClass("incorrect").removeClass("correct");
+                                $(".meanings .meaning").eq(index).addClass("incorrect").removeClass("correct");
+                            }
+                        });
+                        alert(response.message);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

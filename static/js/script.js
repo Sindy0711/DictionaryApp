@@ -123,3 +123,12 @@ document.addEventListener('DOMContentLoaded', () => {
       }
   });
 });
+
+document.getElementById("create-page-btn").addEventListener("click", function() {
+  var form = document.getElementById("create-page-form");
+  if (form.style.display === "none") {
+      form.style.display = "block";
+  } else {
+      form.style.display = "none";
+  }
+});

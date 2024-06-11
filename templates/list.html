@@ -12,7 +12,6 @@
             <th scope="col">Từ</th>
             <th scope="col">Phiên Âm</th>
             <th scope="col">Mô tả</th>
-            <th scope="col">Chọn</th>
           </tr>
         </thead>
         <tbody>
@@ -21,9 +20,6 @@
             <td>{{ item.tu }}</td>
             <td>{{ item.phienam }}</td>
             <td>{{ item.nghia }}</td>
-            <td>
-              <button class="btn btn-secondary btn-select" data-tu="{{item.tu}}" data-phienam="{{item.phienam}}" data-nghia="{{item.nghia}}" data-ma_tu_vung="{{item.ma_tu_vung}}">Chọn</button>
-            </td>
           </tr>
           {% endfor %}
         </tbody>
@@ -36,27 +32,6 @@
         <div class="col">{{ pagination.links }}</div>
       </div>
       {% endif %}
-    </div>
-
-    <div class="col-md-6 mt-5">
-      <h4>Các từ đã chọn (Tối đa 10 từ)</h4>
-      <div id="selected-words">
-        <!-- Các từ đã chọn sẽ hiển thị ở đây -->
-      </div>
-      <button id="save-words-btn" class="btn btn-primary" disabled>Lưu từ</button>
-      <div id="select-page-form" style="display:none;">
-        <h4>Chọn trang từ vựng hiện có</h4>
-        <form id="select-page-form">
-          <div class="form-group">
-            <label for="existing-page">Chọn trang:</label>
-            <select id="existing-page" class="form-control">
-              <option value="">--Chọn trang--</option>
-              <!-- Các trang sẽ được thêm động ở đây -->
-            </select>
-          </div>
-          <button type="submit" class="btn btn-success">Lưu vào trang</button>
-        </form>
-      </div>
     </div>
   </div>
 </div>
