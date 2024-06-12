@@ -8,13 +8,13 @@
   <div class="container">
     <div class="row">
       <div class="col-4"></div>
-      <div class="col-4">
+      <div class="md-col-4">
         <form action="/register" method="post" class="register-form">
-          <p class="title">Đăng ký</p>
-          <p class="message">Đăng ký ngay bây giờ và có toàn quyền truy cập vào ứng dụng của chúng tôi.</p>
+          <p class="title">Sign up</p>
+          <p class="message">Sign up now and get full access to our app.</p>
           <label>
-            <span>Tên đăng nhập</span>
-            <input class="form-control" name="ten_dang_nhap" type="text" placeholder="" required="" />
+            <span>Username</span>
+            <input class="form-control" name="username" type="text" placeholder="" required="" />
           </label>
           
           
@@ -30,15 +30,15 @@
           </label>
 
           <label>
-            <span>Mật khẩu</span>
-            <input class="form-control" name="mat_khau1" type="password" placeholder="********" required="" />
+            <span>Password</span>
+            <input class="form-control" name="password1" type="password" placeholder="********" required="" />
           </label>
           <label>
-            <span>Xác Nhận Mật Khẩu</span>
-            <input class="form-control" name="mat_khau2" type="password" placeholder="********" required="" />
+            <span>Confirm password</span>
+            <input class="form-control" name="password2" type="password" placeholder="********" required="" />
           </label>
-          <button class="submit" type="submit">Xác nhận</button>
-          <p class="signin"> Đã có tài khoản ? <a href="{{ url_for('login') }}">Đăng nhập</a></p>
+          <button class="submit" type="submit">Submit</button>
+          <p class="signin"> Already have an account?<a href="{{ url_for('login') }}">Log in</a></p>
         </form>
       </div>
       <div class="col-4"></div>

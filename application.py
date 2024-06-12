@@ -1,5 +1,4 @@
-import logging  # Import the logging module
-import os
+import os , re , logging
 from functools import wraps
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import scoped_session, sessionmaker
@@ -39,18 +38,32 @@ def login_required(f):
     return decorated_function
 
 def get_current_user_id():
-    user_id = session.get("ma_nguoi_dung")
+    user_id = session.get("user_id")
     if user_id:
         logging.debug(f"Current user_id from session: {user_id}")
     else:
         logging.debug("No user_id found in session")
     return user_id
 
+def validate_password(password):
+    if len(password) < 8:
+        return "Password must be at least 8 characters long"
+    elif not any(char.isdigit() for char in password):
+        return "Password must contain at least one number"
+    elif not any(char.isalpha() for char in password):
+        return "The password must contain at least one letter"
+    elif not re.search('[^a-zA-Z0-9]', password):
+        return "The password must contain at least one special character"
+    return None
+
+
+
+
 @app.route('/')
 def index():
-    if session.get("email") is not None:
-        return render_template('home.html')
-    else:
+    # if session.get("email") is not None:
+    #     return render_template('index.html')
+    # else:
         return render_template('index.html')
 
 # LOGIN , REGISTER , LOGOUT
@@ -60,37 +73,44 @@ def register():
     if request.method == "GET":
         return render_template("register.html")
     else:
-        if not request.form.get("ten_dang_nhap"):
-            return render_template("error.html", message="Phải cung cấp Tên đăng nhập")
-        if not request.form.get("ten_nguoi_dung"):
-            return render_template("error.html", message="Phải cung cấp Tên người dùng")
-        elif not request.form.get("email"):
-            return render_template("error.html", message="Phải cung cấp Email")
-        elif not request.form.get("mat_khau1") or not request.form.get("mat_khau2"):
-            return render_template("error.html", message="Phải cung cấp mật khẩu")
-        elif request.form.get("mat_khau1") != request.form.get("mat_khau2"):
-            return render_template("error.html", message="Mật khẩu không khớp")
+        full_name = request.form.get("full_name")
+        username = request.form.get("username")
+        email = request.form.get("email")
+        password1 = request.form.get("password1")
+        password2 = request.form.get("password2")
 
+        for field in [full_name , username , email , password1, password2]:
+            if not field:
+                return render_template("register.html", message="All fields must be filled in") 
+        
+         # Kiểm tra xem mật khẩu có hợp lệ không
+        password_error = validate_password(password1)
+        if password_error:
+            return render_template("register.html", message=password_error)
+
+        # Kiểm tra đồng bộ
+        if password1 != password2:
+            return render_template("register.html", message="Password mismatch")
+
+        existing_user = db.execute(text("SELECT * FROM Users WHERE email = :email"), {"email": email}).fetchone()
+        if existing_user:
+            return render_template("register.html", message="Email used")
         # end validation
         else:
-            ten_nguoi_dung = request.form.get("ten_nguoi_dung")
-            ten_dang_nhap = request.form.get("ten_dang_nhap")
-            email = request.form.get("email")
-            mat_khau = request.form.get("mat_khau1")
 
             try:
-                db.execute(text("INSERT INTO NguoiDung(ten_dang_nhap, ten_nguoi_dung, email, mat_khau) VALUES (:ten_dang_nhap, :ten_nguoi_dung, :email, :mat_khau)"),
-                           {"ten_dang_nhap": ten_dang_nhap, "ten_nguoi_dung": ten_nguoi_dung, "email": email, "mat_khau": generate_password_hash(mat_khau)})
+                db.execute(text("INSERT INTO Users(username, full_name, email, password) VALUES (:username, :full_name, :email, :password)"),
+                           {"username": username, "full_name": full_name, "email": email, "password": generate_password_hash(password1)})
             except Exception as e:
-                return render_template("error.html", message=e)
+                return render_template("register.html", message=e)
 
             db.commit()
 
-            Q = db.execute(text("SELECT * FROM NguoiDung WHERE email LIKE :email"), {"email": email}).fetchone()
-            print(Q.ma_nguoi_dung)
+            Q = db.execute(text("SELECT * FROM Users WHERE email LIKE :email AND full_name LIKE :full_name"), {"email": email , "full_name": full_name }).fetchone()
+            print(Q.user_id)
 
-            session["ten_nguoi_dung"] = Q.ten_nguoi_dung
-            session["ma_nguoi_dung"] = Q.ma_nguoi_dung
+            session["user_id"] = Q.user_id
+            session["full_name"] = Q.full_name
             session["email"] = Q.email
             session["logged_in"] = True
 
@@ -100,26 +120,26 @@ def register():
 def login():
     session.clear()
     if request.method == "POST":
-        form_dang_nhap = request.form.get("ten_dang_nhap")
+        form_dang_nhap = request.form.get("username")
         form_email = request.form.get("email")
-        form_password = request.form.get("mat_khau")
+        form_password = request.form.get("password")
 
         if not form_email:
             return render_template("error.html", message="must provide username")
         elif not form_password:
             return render_template("error.html", message="must provide password")
 
-        Q = db.execute(text("SELECT * FROM NguoiDung WHERE email LIKE :email AND ten_dang_nhap LIKE :ten_dang_nhap"), {"email": form_email, "ten_dang_nhap": form_dang_nhap}).fetchone()
+        Q = db.execute(text("SELECT * FROM Users WHERE email LIKE :email AND username LIKE :username"), {"email": form_email, "username": form_dang_nhap}).fetchone()
         db.commit()
 
         if Q is None:
             return render_template("error.html", message="User doesn't exists")
-        if not check_password_hash(Q.mat_khau, form_password):
+        if not check_password_hash(Q.password, form_password):
             return render_template("error.html", message="Invalid password")
 
-        session["ma_nguoi_dung"] = Q.ma_nguoi_dung
+        session["user_id"] = Q.user_id
         session["email"] = Q.email
-        session["ten_nguoi_dung"] = Q.ten_nguoi_dung
+        session["full_name"] = Q.full_name
         session["logged_in"] = True
 
         return render_template("home.html")
@@ -134,16 +154,21 @@ def logout():
     return redirect(url_for("index"))
 
 # BUSINESS FUNCTION
+
 @app.route('/page', methods=['GET'])
 def page():
-    # Function implementation
-    pass
+    page = request.args.get(get_page_parameter(), type=int, default=1)
+    offset = (page - 1) * ITEMS_PER_PAGE
 
-# Somewhere else in the code
-@app.route('/page', methods=['GET'])
-def another_page_function():
-    # Another implementation
-    pass
+    try:
+        result = db.execute(text('SELECT * FROM Vocabulary ORDER BY word_id LIMIT :limit OFFSET :offset'), {"limit": ITEMS_PER_PAGE, "offset": offset}).fetchall()
+        total_results = db.execute(text('SELECT COUNT(*) FROM Vocabulary')).scalar()
+    except Exception as e:
+        return render_template("error.html", message=str(e))
+
+    pagination = Pagination(page=page, total=total_results, search=False, record_name='result', per_page=ITEMS_PER_PAGE)
+
+    return render_template("list.html", result=result, pagination=pagination, display_msg=False)
 
 @app.route('/search', methods=['GET', 'POST'])
 def search():
@@ -154,7 +179,7 @@ def search():
         if query is None:
             return render_template("error.html", message="Search field can not be empty!")
         try:
-            result = db.execute(text('SELECT * FROM tuvung WHERE LOWER(tu) LIKE :query'), {"query": "%" + query.lower() + "%"}).fetchall()
+            result = db.execute(text('SELECT * FROM Vocabulary WHERE LOWER(word) LIKE :query'), {"query": "%" + query.lower() + "%"}).fetchall()
         except Exception as e:
             return render_template("error.html", message=e)
         if not result:
@@ -165,22 +190,22 @@ def search():
 @login_required
 def create_vocabulary_page():
     try:
-        user_id = session.get("ma_nguoi_dung")
+        user_id = get_current_user_id()
         data = request.json
         page_name = data.get('page_name')
         page_description = data.get('page_description', '')
         selected_words = data.get('words', [])
 
         if not page_name:
-            return jsonify({"status": "error", "message": "Tên trang là bắt buộc"})
+            return jsonify({"status": "error", "message": "Page name is required"})
 
-        result = db.execute(text('INSERT INTO TrangTuVung (ten_trang, mo_ta, ma_nguoi_dung) VALUES (:page_name, :page_description, :user_id) RETURNING ma_trang'),
+        result = db.execute(text('INSERT INTO VocabularyPage (page_name, description, user_id) VALUES (:page_name, :page_description, :user_id) RETURNING page_id'),
                             {"page_name": page_name, "page_description": page_description, "user_id": user_id})
         page_id = result.fetchone()[0]
 
         for word in selected_words:
-            db.execute(text('INSERT INTO TienDoHocTu (ma_trang, ma_nguoi_dung, ma_tu_vung, diem) VALUES (:page_id, :user_id, :ma_tu_vung, 0)'),
-                       {"page_id": page_id, "user_id": user_id, "ma_tu_vung": word['ma_tu_vung']})
+            db.execute(text('INSERT INTO LearningProgress (page_id, user_id, word_id, score) VALUES (:page_id, :user_id, :word_id, 0)'),
+                       {"page_id": page_id, "user_id": user_id, "word_id": word['word_id']})
         db.commit()
         logging.debug("Vocabulary page created successfully")
         return jsonify({"status": "success", "page_id": page_id})
@@ -206,21 +231,21 @@ def save_page():
             with engine.connect() as connection:
                 if page_name:
                     result = connection.execute(
-                        text('INSERT INTO TrangTuVung (ten_trang, ma_nguoi_dung) VALUES (:page_name, :user_id) RETURNING ma_trang'),
+                        text('INSERT INTO VocabularyPage (page_name, user_id) VALUES (:page_name, :user_id) RETURNING page_id'),
                         {"page_name": page_name, "user_id": user_id})
                     page_id = result.fetchone()[0]
                 else:
                     page_id = existing_page_id
 
-                insert_query = text('INSERT INTO TienDoHocTu (ma_trang, ma_nguoi_dung, ma_tu_vung, diem) VALUES (:page_id, :user_id, :ma_tu_vung, 0)')
+                insert_query = text('INSERT INTO LearningProgress (page_id, user_id, word_id, score) VALUES (:page_id, :user_id, :word_id, 0)')
                 for word in selected_words:
-                    connection.execute(insert_query, {"page_id": page_id, "user_id": user_id, "ma_tu_vung": word})
+                    connection.execute(insert_query, {"page_id": page_id, "user_id": user_id, "word_id": word})
 
                 connection.commit()
 
             session['selected_words'] = []
             flash("Words saved successfully.")
-            return redirect(url_for('trang_tu_vung'))
+            return redirect(url_for('VocabularyPage'))
 
         except Exception as e:
             logging.exception("Error saving words")
@@ -229,7 +254,7 @@ def save_page():
     else:
         try:
             existing_pages = db.execute(
-                text('SELECT ma_trang, ten_trang FROM TrangTuVung WHERE ma_nguoi_dung = :user_id'), 
+                text('SELECT page_id, page_name FROM VocabularyPage WHERE user_id = :user_id'), 
                 {"user_id": user_id}).fetchall()
 
             logging.debug(f"Fetched existing pages: {existing_pages}")
@@ -239,20 +264,20 @@ def save_page():
             logging.exception("Error fetching vocabulary pages")
             return render_template("error.html", message=str(e))
 
-@app.route('/api/get_vocabulary_pages', methods=['GET'])
+@app.route('/api/et_vocabulary_pages', methods=['GET'])
 @login_required
-def get_vocabulary_pages():
+def et_vocabulary_pages():
     try:
         user_id = get_current_user_id()  # Thay thế bằng phương thức của bạn để lấy ID người dùng hiện tại
         with engine.connect() as connection:
             result = connection.execute(
-                text('SELECT ma_trang, ten_trang FROM TrangTuVung WHERE ma_nguoi_dung = :user_id'),
+                text('SELECT page_id, page_name FROM VocabularyPage WHERE user_id = :user_id'),
                 {"user_id": user_id}
             ).fetchall()
-            pages = [{"ma_trang": row[0], "ten_trang": row[1]} for row in result]  # Chuyển tuple thành dictionary
+            pages = [{"page_id": row[0], "page_name": row[1]} for row in result]  # Chuyển tuple thành dictionary
         return jsonify({"status": "success", "pages": pages})
     except Exception as e:
-        logging.exception("Lỗi khi lấy các trang từ vựng")
+        logging.exception("Error fetching vocabulary pages")
         return jsonify({"status": "error", "message": str(e)})
 
 
@@ -269,13 +294,13 @@ def save_words_to_existing_page():
             return jsonify({"status": "error", "message": "Existing page ID is required"})
 
         with engine.connect() as connection:
-            word_count = connection.execute(text('SELECT COUNT(*) FROM TienDoHocTu WHERE ma_trang = :page_id'), {"page_id": existing_page_id}).scalar()
+            word_count = connection.execute(text('SELECT COUNT(*) FROM LearningProgress WHERE page_id = :page_id'), {"page_id": existing_page_id}).scalar()
             if word_count + len(selected_words) > 10:
                 return jsonify({"status": "error", "message": "The page already has too many words. Please create a new page."})
 
             for word in selected_words:
-                connection.execute(text('INSERT INTO TienDoHocTu (ma_trang, ma_nguoi_dung, ma_tu_vung, diem) VALUES (:page_id, :user_id, :ma_tu_vung, 0)'),
-                                   {"page_id": existing_page_id, "user_id": 1, "ma_tu_vung": word['ma_tu_vung']})
+                connection.execute(text('INSERT INTO LearningProgress (page_id, user_id, word_id, score) VALUES (:page_id, :user_id, :word_id, 0)'),
+                                   {"page_id": existing_page_id, "user_id": 1, "word_id": word['word_id']})
             connection.commit()
 
         return jsonify({"status": "success"})
@@ -300,37 +325,37 @@ def save_words():
             return redirect(url_for('search'))
 
         # Retrieve user_id from session
-        user_id = session.get("ma_nguoi_dung")
+        user_id = session.get("user_id")
 
         with engine.connect() as connection:
             if page_name:
-                result = connection.execute(text('INSERT INTO TrangTuVung (ten_trang, ma_nguoi_dung) VALUES (:page_name, :user_id) RETURNING ma_trang'),
+                result = connection.execute(text('INSERT INTO VocabularyPage (page_name, user_id) VALUES (:page_name, :user_id) RETURNING page_id'),
                                             {"page_name": page_name, "user_id": user_id})
                 page_id = result.fetchone()[0]
             else:
                 page_id = existing_page_id
 
-            word_count = connection.execute(text('SELECT COUNT(*) FROM TrangTuVungTuVung WHERE ma_trang = :page_id'), {"page_id": page_id}).scalar()
+            word_count = connection.execute(text('SELECT COUNT(*) FROM PageWords WHERE page_id = :page_id'), {"page_id": page_id}).scalar()
             if word_count + len(selected_words) > 10:
                 flash("The page already has too many words. Please create a new page.")
                 return redirect(url_for('search'))
 
-            # Insert selected words into TrangTuVungTuVung table
-            insert_query = text('INSERT INTO TrangTuVungTuVung (ma_trang, tu, phienam, nghia) VALUES (:page_id, :tu, :phienam, :nghia)')
+            # Insert selected words into PageWords table
+            insert_query = text('INSERT INTO PageWords (page_id, word, pronunciation, meaning) VALUES (:page_id, :word, :pronunciation, :meaning)')
             for word in selected_words:
-                connection.execute(insert_query, {"page_id": page_id, "tu": word['tu'], "phienam": word['phienam'], "nghia": word['nghia']})
+                connection.execute(insert_query, {"page_id": page_id, "word": word['word'], "pronunciation": word['pronunciation'], "meaning": word['meaning']})
             connection.commit()
 
         session['selected_words'] = []  # Clear session after saving
         flash("Words saved successfully.")
-        return redirect(url_for('trang_tu_vung'))
+        return redirect(url_for('VocabularyPage'))
     except Exception as e:
         logging.exception("Error saving words")
         return render_template("error.html", message=str(e))
     
-@app.route('/trang_tu_vung')
+@app.route('/VocabularyPage')
 @login_required
-def trang_tu_vung():
+def VocabularyPage():
     try:
         user_id = get_current_user_id()
         if user_id is None:
@@ -338,10 +363,10 @@ def trang_tu_vung():
 
         logging.debug(f"Fetching vocabulary pages for user {user_id}")
 
-        pages = db.execute(text('SELECT * FROM TrangTuVung WHERE ma_nguoi_dung = :user_id'), {"user_id": user_id}).fetchall()
+        pages = db.execute(text('SELECT * FROM VocabularyPage WHERE user_id = :user_id'), {"user_id": user_id}).fetchall()
         logging.debug(f"Pages: {pages}")
 
-        return render_template('trang_tu_vung.html', pages=pages)
+        return render_template('VocabularyPage.html', pages=pages)
     except Exception as e:
         logging.exception("Error fetching vocabulary pages")
         return render_template("error.html", message=str(e))
@@ -352,19 +377,15 @@ def trang_tu_vung():
 def view_page(page_id):
     user_id = get_current_user_id()
     try:
-        # Fetch the page using .mappings().fetchone() to get a dictionary-like result
-        page = db.execute(
-            text('SELECT * FROM TrangTuVung WHERE ma_trang = :page_id AND ma_nguoi_dung = :user_id'),
-            {"page_id": page_id, "user_id": user_id}
-        ).mappings().fetchone()
+        page = db.execute( text('SELECT * FROM VocabularyPage WHERE page_id = :page_id AND user_id = :user_id'),{"page_id": page_id, "user_id": user_id}).mappings().fetchone()
         
         if not page:
             flash("Page not found.")
-            return redirect(url_for('trang_tu_vung'))
+            return redirect(url_for('VocabularyPage'))
 
         # Fetch the word IDs
         word_ids = db.execute(
-            text('SELECT ma_tu_vung FROM TienDoHocTu WHERE ma_trang = :page_id'),
+            text('SELECT word_id FROM LearningProgress WHERE page_id = :page_id'),
             {"page_id": page_id}
         ).fetchall()
         word_ids = [word_id[0] for word_id in word_ids]
@@ -374,53 +395,57 @@ def view_page(page_id):
             return render_template('view_page.html', page=page, words=[])
 
         # Fetch the words using .mappings().fetchall() to get dictionary-like results
-        words = db.execute(
-            text('SELECT * FROM TuVung WHERE ma_tu_vung IN :word_ids'),
-            {"word_ids": tuple(word_ids)}
-        ).mappings().fetchall()
+        words = db.execute( text('SELECT * FROM Vocabulary WHERE word_id IN :word_ids'), {"word_ids": tuple(word_ids)}).mappings().fetchall()
 
         return render_template('view_page.html', page=page, words=words)
     except Exception as e:
         logging.exception("Error viewing page")
         return render_template("error.html", message=str(e))
 
-
+@app.route('/matching_game', methods=['GET', 'POST'])
+def matching_game():
+    
 
 @app.route('/flashcard', methods=['GET'])
 def flashcard():
     try:
-        flashcard = db.execute(text('SELECT * FROM tuvung ORDER BY RANDOM() LIMIT 1')).fetchone()
+        flashcard = db.execute(text('''
+            SELECT LearningProgress.*, Vocabulary.pronunciation, Vocabulary.meaning 
+            FROM LearningProgress 
+            JOIN Vocabulary ON LearningProgress.word_id = Vocabulary.word_id 
+            ORDER BY RANDOM() 
+            LIMIT 1
+        ''')).fetchone()
         
     except Exception as e:
         return render_template("error.html", message=str(e))
 
     if not flashcard:
         return render_template("error.html", message="No flashcards available")
-
     return render_template("flashcard.html", flashcard=flashcard)
 
-@app.route('/add_question', methods=['GET', 'POST'])
-def add_question():
+@app.route('/multiple_choice', methods=['GET', 'POST'])
+def multiple_choice():
     if request.method == 'POST':
-        ma_trang = request.form.get('ma_trang')
-        ma_nguoi_dung = request.form.get('ma_nguoi_dung')
-        ma_tu_vung = request.form.get('ma_tu_vung')
+        page_id = request.form.get('page_id')
+        user_id = request.form.get('user_id')
+        word_id = request.form.get('word_id')
 
         try:
-            tuvung = db.execute(text('SELECT * FROM TienDoHocTu WHERE ma_trang = :ma_trang AND ma_nguoi_dung = :ma_nguoi_dung AND ma_tu_vung = :ma_tu_vung'), 
-                                 {"ma_trang": ma_trang, "ma_nguoi_dung": ma_nguoi_dung, "ma_tu_vung": ma_tu_vung}).fetchone()
-            if tuvung is None:
+            Vocabulary = db.execute(text('SELECT * FROM LearningProgress WHERE page_id = :page_id AND user_id = :user_id AND word_id = :word_id'), 
+                        {"page_id": page_id, "user_id": user_id, "word_id": word_id}).fetchone()
+            if Vocabulary is None:
                 return render_template("error.html", message="No vocabulary found")
 
-            cau_hoi = tuvung.tu
-            correct_choice = tuvung.nghia
+            cau_hoi = Vocabulary.word
+            correct_choice = Vocabulary.meaning
 
-            choices = db.execute(text('SELECT nghia FROM TienDoHocTu WHERE nghia != :correct_choice ORDER BY RANDOM() LIMIT 3')).fetchall()
-            choice_a = choices[0].nghia
-            choice_b = choices[1].nghia
-            choice_c = choices[2].nghia
+            choices = db.execute(text('SELECT meaning FROM LearningProgress WHERE meaning != :correct_choice ORDER BY RANDOM() LIMIT 3')).fetchall()
+            choice_a = choices[0].meaning
+            choice_b = choices[1].meaning
+            choice_c = choices[2].meaning
 
-            db.execute(text('INSERT INTO CauHoi (tu, choice_a, choice_b, choice_c, correct_choice) VALUES (:cau_hoi, :choice_a, :choice_b, :choice_c, :correct_choice)'), 
+            db.execute(text('INSERT INTO CauHoi (word, choice_a, choice_b, choice_c, correct_choice) VALUES (:cau_hoi, :choice_a, :choice_b, :choice_c, :correct_choice)'), 
                        {"cau_hoi": cau_hoi, "choice_a": choice_a, "choice_b": choice_b, "choice_c": choice_c, "correct_choice": correct_choice})
             db.commit()
         except Exception as e:
@@ -428,7 +453,7 @@ def add_question():
 
         return redirect(url_for('page'))
 
-    return render_template('add_question.html')
+    return render_template('multiple_choice.html')
 
 
 if __name__ == "__main__":

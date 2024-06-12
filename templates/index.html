@@ -1,8 +1,18 @@
-{% extends "layout.html" %}
+{% extends "layout.html" %} 
 
-{% block title %} Home Page {% endblock %}
+{% block title %} Home Page {% endblock %} 
 
 {% block content %}
-    <h2>Welcome to the Vocabulary App</h2>
-    <p>Use the search function to find vocabulary words.</p>
+    <div class="container">
+        <div class="row">
+            <div class="col align-self-center my-5 color-white">
+                <h2>Welcome to the Vocabulary App</h2>
+                <p>Use the search function to find vocabulary words.</p>
+                {% if not session.logged_in %}
+                  <a class="btn btn-lg btn-default" href="{{url_for("login")}}" role="button">Login</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
 {% endblock %}

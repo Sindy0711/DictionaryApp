@@ -1,3 +1,18 @@
+:root{
+  --main-color: #383b4f;
+}
+/* Common  */
+
+
+body {
+  font-family: Arial, sans-serif;
+}
+
+.btn {
+  margin-top: 18px;
+}
+
+/*  */
 .card {
   --bg: #f7f7f8;
   --hover-bg: #bebfb0;
@@ -15,6 +30,7 @@
   justify-content: center;
   align-items: center;
   transition: 0.3s cubic-bezier(0.6, 0.4, 0, 1), transform 0.15s ease;
+  
 }
 
 .card > :not(span) {
@@ -52,7 +68,7 @@
   opacity: 0;
 }
 
-/* form */
+/* ======== form ========= */
 .register-form,
 .login-form {
   display: flex;
@@ -62,7 +78,7 @@
   padding: 20px;
   border-radius: 20px;
   position: relative;
-  background-color: #383b4f;
+  background-color: var(--main-color);
   color: #fff;
   border: 1px solid #333;
 }
@@ -209,4 +225,15 @@ table.table.\.list {
 
 .card-text {
   font-style: italic;
+}
+
+.pagination .active .sr-only {
+  display: none;
+}
+
+.menu {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  
 }
