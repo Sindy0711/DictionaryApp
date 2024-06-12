@@ -1,0 +1,68 @@
+<!-- templates/list.html -->
+{% extends "layout.html" %}
+{% block title %}Add words to the page{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col-md-6 mt-5">
+      {% if result %}
+      <table class="table list">
+        <thead>
+          <tr>
+            <th scope="col">Từ</th>
+            <th scope="col">Phiên Âm</th>
+            <th scope="col">Mô tả</th>
+            <th scope="col">Chọn</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in result %}
+          <tr>
+            <td>{{ item.tu }}</td>
+            <td>{{ item.phienam }}</td>
+            <td>{{ item.nghia }}</td>
+            <td>
+              <button class="btn btn-secondary btn-select" data-tu="{{item.tu}}" data-phienam="{{item.phienam}}" data-nghia="{{item.nghia}}" data-ma_tu_vung="{{item.ma_tu_vung}}">Add</button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p>No result is found</p>
+      {% endif %}
+      {% if pagination %}
+      <div class="row">
+        <div class="col">{{ pagination.links }}</div>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="col-md-6 mt-5">
+      <h4>Selected words (Maximum 10 words)</h4>
+      <div id="selected-words">
+        <!-- Các từ đã chọn sẽ hiển thị ở đây -->
+      </div>
+      <button id="save-words-btn" class="btn btn-primary" onclick="showSelectPageForm()">Save words</button>
+      <div id="select-page-form" style="display:none;">
+        <h4>Select an existing vocabulary page</h4>
+        <form id="select-page-form">
+          <div class="form-group">
+            <label for="existing-page">Select page:</label>
+            <select id="existing-page" class="form-control">
+              <option value="">--Select page--</option>
+              <!-- Các trang sẽ được thêm động ở đây -->
+            </select>
+          </div>
+          <button type="submit" class="btn btn-success">Save to page</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <a href="{{ url_for('trang_tu_vung') }}" class="btn btn-primary">Back to Pages</a>
+</div>
+
+
+
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+{% endblock %}

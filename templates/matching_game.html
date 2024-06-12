@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matching Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f4f4f4;
+        }
+
+        h1 {
+            margin-top: 20px;
+        }
+
+        .game-wrapper {
+            width: 80%;
+            margin-top: 20px;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .game-container {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .words-container, .meanings-container {
+            width: 45%;
+        }
+
+        .words, .meanings {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-height: 200px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+
+        .word, .meaning {
+            background-color: #ffffff;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+        }
+
+        .correct {
+            background-color: #d4edda; /* green */
+            border-color: #c3e6cb;
+        }
+
+        .incorrect {
+            background-color: #f8d7da; /* red */
+            border-color: #f5c6cb;
+        }
+
+        #checkAnswers {
+            margin-top: 20px;
+            padding: 10px 20px;
+            border: none;
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #checkAnswers:hover {
+            background-color: #45a049;
+        }
+        
+        #timer {
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Matching Game</h1>
+    <div id="timer">Time left: 60s</div>
+    <div class="game-wrapper">
+        <div class="game-container">
+            <div class="words-container">
+                <div class="words">
+                    {% for word in words %}
+                        <div class="word" data-id="{{ word.ma_tu_vung }}">{{ word.tu }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="meanings-container">
+                <div class="meanings">
+                    {% for meaning in meanings %}
+                        <div class="meaning" data-meaning="{{ meaning }}">{{ meaning }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="float-right">
+            <div class="float-right">
+                <button id="checkAnswers">check</button>
+                <a href="{{ url_for('trang_tu_vung') }}" class="btn btn-success mt-2 mr-2">Back to Pages</a>
+            </div>
+        </div>
+    </div>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const meaningsContainer = document.querySelector('.meanings');
+        let draggedItem = null;
+        let timeLeft = 60;
+        const timerElement = document.getElementById('timer');
+        const timerInterval = setInterval(() => {
+            timeLeft--;
+            timerElement.textContent = `Time left: ${timeLeft}s`;
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                timerElement.textContent = 'Time is up!';
+                checkAnswers();
+            }
+        }, 1000);
+
+        document.querySelectorAll('.meaning').forEach(item => {
+            item.setAttribute('draggable', true);
+
+            item.addEventListener('dragstart', function(e) {
+                draggedItem = e.target;
+                setTimeout(() => {
+                    e.target.style.display = 'none';
+                }, 0);
+            });
+
+            item.addEventListener('dragend', function(e) {
+                setTimeout(() => {
+                    draggedItem.style.display = 'block';
+                    draggedItem = null;
+                }, 0);
+            });
+        });
+
+        meaningsContainer.addEventListener('dragover', function(e) {
+            e.preventDefault();
+        });
+
+        meaningsContainer.addEventListener('drop', function(e) {
+            e.preventDefault();
+            if (e.target.classList.contains('meaning')) {
+                meaningsContainer.insertBefore(draggedItem, e.target);
+            } else {
+                meaningsContainer.appendChild(draggedItem);
+            }
+        });
+
+        document.getElementById('checkAnswers').addEventListener('click', function() {
+            clearInterval(timerInterval);
+            checkAnswers();
+        });
+
+        function checkAnswers() {
+            const results = [];
+            document.querySelectorAll('.word').forEach((wordElem, index) => {
+                const wordId = wordElem.dataset.id;
+                const meaningElem = document.querySelectorAll('.meanings .meaning')[index];
+                if (meaningElem) {
+                    const meaning = meaningElem.dataset.meaning;
+                    results.push({ "ma_tu_vung": wordId, "nghia": meaning });
+                }
+            });
+
+            console.log("Results to be sent:", results);
+
+            fetch('{{ url_for('check_matching_answers') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(results)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log("Response from server:", data);
+
+                document.querySelectorAll('.word').forEach((wordElem, index) => {
+                    const wordId = wordElem.dataset.id;
+                    const meaningElem = document.querySelectorAll('.meanings .meaning')[index];
+                    if (meaningElem) {
+                        const correctMeaning = data.correct_answers[wordId];
+                        if (correctMeaning === meaningElem.dataset.meaning) {
+                            wordElem.classList.add('correct');
+                            wordElem.classList.remove('incorrect');
+                            meaningElem.classList.add('correct');
+                            meaningElem.classList.remove('incorrect');
+                        } else {
+                            wordElem.classList.add('incorrect');
+                            wordElem.classList.remove('correct');
+                            meaningElem.classList.add('incorrect');
+                            meaningElem.classList.remove('correct');
+                        }
+                    }
+                });
+
+                const pointsPerCorrectAnswer = timeLeft > 30 ? 0.82 : 0.75;
+                alert(`${data.message} Bạn đã kiếm được ${pointsPerCorrectAnswer} điểm cho mỗi câu đúng.`);
+                
+                // lấy ma_trang
+
+                fetch('{{ url_for('update_points_matching_game') }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ points_per_correct: pointsPerCorrectAnswer, correct_answers: data.correct_answers, ma_trang: data.ma_trang })
+                })
+                .then(response => response.json())
+                .then(updateData => {
+                    console.log("Points update response:", updateData);
+                });
+            });
+        }
+    });
+    </script>
+</body>
+</html>

@@ -1,17 +1,17 @@
 {% extends "layout.html" %}
 
-{% block title %}Search{% endblock %}
+{% block title %}Add words to the page{% endblock %}
 
 {% block content %}
 <div class="container">
     <div class="row">
         <div class="col-6">
             <div class="search-form">
-                    <form class="form-inline justify-content-center" action="{{url_for("search")}}" method="post">
+                    <form class="form-inline justify-content-center" action="{{url_for("saved_words")}}" method="post">
                     <h2 class="card-title color-default">Search for word</h2>
                     <!-- form-group -->
                     <div class="form-group">
-                        <input name="input-search" class="form-control form-control-lg mr-sm-2" placeholder="find" type="search" required>
+                        <input name="input-saved_words" class="form-control form-control-lg mr-sm-2" placeholder="find" type="search" required>
                         <button type="submit" class="btn my-2 my-sm-0 btn-lg btn-primary">Search</button>
                     </div>  
                   </form>
@@ -20,4 +20,5 @@
         <div class="col-6"><!--Placeholder right--></div>
     </div>
 </div>
+
 {% endblock %}

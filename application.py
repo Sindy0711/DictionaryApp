@@ -175,22 +175,38 @@ def page():
 
     return render_template("list.html", result=result, pagination=pagination, display_msg=False)
 
-@app.route('/search', methods=['GET', 'POST'])
+@app.route('/search', methods=['GET', 'POST'], endpoint='search')
 def search():
     if request.method == "GET":
         return render_template("search.html")
     else:
         query = request.form.get("input-search")
         if query is None:
-            return render_template("error.html", message="Search field can not be empty!")
+            return render_template("error.html", message="Search field cannot be empty!")
         try:
             result = db.execute(text('SELECT * FROM Vocabulary WHERE LOWER(word) LIKE :query'), {"query": "%" + query.lower() + "%"}).fetchall()
         except Exception as e:
-            return render_template("error.html", message=e)
+            return render_template("error.html", message=str(e))
         if not result:
             return render_template("error.html", message="Your query did not match any documents")
         return render_template("list.html", result=result)
 
+@app.route('/saved_words', methods=['GET', 'POST'], endpoint='search_saved_words')
+def search_saved_words():
+    if request.method == "GET":
+        return render_template("saved_words.html")
+    else:
+        query = request.form.get("input-saved_words")
+        if query is None:
+            return render_template("error.html", message="Search field cannot be empty!")
+        try:
+            result = db.execute(text('SELECT * FROM tuvung WHERE LOWER(tu) LIKE :query'), {"query": "%" + query.lower() + "%"}).fetchall()
+        except Exception as e:
+            return render_template("error.html", message=str(e))
+        if not result:
+            return render_template("error.html", message="Your query did not match any documents")
+        return render_template("list_saved_words.html", result=result)
+    
 @app.route('/create_vocabulary_page', methods=['POST'])
 @login_required
 def create_vocabulary_page():
@@ -217,7 +233,7 @@ def create_vocabulary_page():
     except Exception as e:
         logging.exception("Error creating vocabulary page")
         return jsonify({"status": "error", "message": str(e)})
-
+    
 @app.route('/save_page', methods=['GET', 'POST'])
 @login_required
 def save_page():
@@ -314,20 +330,19 @@ def save_words_to_existing_page():
         return jsonify({"status": "error", "message": str(e)})
 
 
-@app.route('/save_words', methods=['POST'])
-def save_words():
-    try:
-        selected_words = session.get('selected_words', [])
-        if not selected_words:
-            flash("No words selected to save.")
-            return redirect(url_for('search'))
-
+@app.route('/saved_words', methods=['GET', 'POST'])
+@login_required
+def saved_words():
+    user_id = get_current_user_id()
+    if request.method == 'POST':
+        # Handle the form submission
+        selected_words = request.form.getlist('selected_words')
         page_name = request.form.get('page_name')
         existing_page_id = request.form.get('existing_page_id')
-
-        if not page_name and not existing_page_id:
-            flash("Please enter a page name or select an existing page.")
-            return redirect(url_for('search'))
+        try:
+            if not page_name and not existing_page_id:
+                flash("Please enter a page name or select an existing page.")
+                return redirect(url_for('saved_words'))
 
         # Retrieve user_id from session
         user_id = session.get("user_id")
@@ -354,7 +369,7 @@ def save_words():
         session['selected_words'] = []  # Clear session after saving
         flash("Words saved successfully.")
         return redirect(url_for('VocabularyPage'))
-    except Exception as e:
+        except Exception as e:
         logging.exception("Error saving words")
         return render_template("error.html", message=str(e))
     
@@ -507,6 +522,110 @@ def multiple_choice():
 def view_session():
     session_data = {key: session[key] for key in session.keys()}
     return jsonify(session_data)
+
+@app.route('/matching_game')
+@login_required
+def matching_game():
+    user_id = get_current_user_id()
+    page_id = request.args.get('page_id')
+
+    if not page_id:
+        flash("Page ID is required.")
+        return redirect(url_for('trang_tu_vung'))
+
+    try:
+        words = db.execute(
+        text('SELECT * FROM TuVung WHERE ma_tu_vung IN (SELECT ma_tu_vung FROM TienDoHocTu WHERE ma_trang = :page_id AND ma_nguoi_dung = :user_id) ORDER BY RANDOM() LIMIT 5'),
+        {"page_id": page_id, "user_id": user_id}
+    ).fetchall()
+
+        if not words:
+            flash("No words found for this page.")
+            return redirect(url_for('trang_tu_vung'))
+
+        # Shuffle the meanings
+        meanings = [word.nghia for word in words]
+        random.shuffle(meanings)
+
+        return render_template('matching_game.html', words=words, meanings=meanings)
+    except Exception as e:
+        logging.exception("Error fetching words for matching game")
+        return render_template("error.html", message=str(e))
+
+@app.route('/check_matching_answers', methods=['POST'])
+@login_required
+def check_matching_answers():
+    data = request.get_json()
+    user_id = get_current_user_id()
+
+    try:
+        word_ids = [item['ma_tu_vung'] for item in data]
+        print("Word IDs:", word_ids)  # Debug print
+
+        # Fetch correct answers from database
+        correct_answers = db.execute(
+            text('SELECT ma_tu_vung, nghia FROM TuVung WHERE ma_tu_vung IN :word_ids'),
+            {"word_ids": tuple(word_ids)}
+        ).fetchall()
+        print("Correct Answers from DB:", correct_answers)  # Debug print
+
+        correct_answers_dict = {str(row.ma_tu_vung): row.nghia for row in correct_answers}
+        print("Correct Answers Dict:", correct_answers_dict)  # Debug print
+
+        # Check user answers
+        user_correct_answers = {}
+        for item in data:
+            word_id = item['ma_tu_vung']
+            user_answer = item['nghia']
+            correct_answer = correct_answers_dict.get(str(word_id))
+
+            if user_answer == correct_answer:
+                user_correct_answers[word_id] = user_answer
+
+        print("User Correct Answers:", user_correct_answers)  # Debug print
+
+        return jsonify({"status": "success", "correct_answers": user_correct_answers, "message": "Answers checked successfully."})
+    except Exception as e:
+        logging.exception("Error checking answers")
+        return jsonify({"status": "error", "message": str(e)})
+
+
+@app.route('/update_points_matching_game', methods=['POST'])
+@login_required
+def update_points_matching_game():
+    data = request.get_json()
+    user_id = get_current_user_id()
+    ma_trang = data.get('ma_trang')
+
+    try:
+        points_per_correct = data['points_per_correct']
+        correct_answers = data['correct_answers']
+        total_points_added = 0
+
+        for word_id, correct_meaning in correct_answers.items():
+            result = db.execute(
+                text('SELECT score FROM TienDoHocTu WHERE ma_trang = :ma_trang AND ma_tu_vung = :word_id AND ma_nguoi_dung = :user_id'),
+                {"ma_trang": ma_trang, "word_id": word_id, "user_id": user_id}
+            ).fetchone()
+
+            if result:
+                current_points = result['score'] if result['score'] is not None else 0
+                new_points = min(current_points + points_per_correct, 10)
+
+                db.execute(
+                    text('UPDATE TienDoHocTu SET score = :new_points, lan_cuoi_hoc = CURRENT_TIMESTAMP WHERE ma_trang = :ma_trang AND ma_tu_vung = :word_id AND ma_nguoi_dung = :user_id'),
+                    {"new_points": new_points, "ma_trang": ma_trang, "word_id": word_id, "user_id": user_id}
+                )
+
+                total_points_added += new_points - current_points
+
+        db.commit()
+        return jsonify({"status": "success", "message": f"Points updated successfully. Total points added: {total_points_added}"})
+    except Exception as e:
+        logging.exception("Error updating points")
+        db.rollback()
+        return jsonify({"status": "error", "message": str(e)})
+
 
 if __name__ == "__main__":
     app.run(debug=True)
