@@ -104,9 +104,12 @@
                 </div>
             </div>
         </div>
+        
         <div class="float-right">
-            <button type="button" class="btn btn-primary mt-2" id="check-answers-btn">Check</button>
-            <button type="button" class="btn btn-success mt-2 mr-2" onclick="window.location.href='{{ url_for('trang_tu_vung') }}'">Back to Pages</button>
+            <div class="float-right">
+                <button id="checkAnswers">check</button>
+                <a href="{{ url_for('trang_tu_vung') }}" class="btn btn-success mt-2 mr-2">Back to Pages</a>
+            </div>
         </div>
     </div>
     <script>
