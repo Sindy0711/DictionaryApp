@@ -9,7 +9,7 @@
                 <h2>Welcome to the Vocabulary App</h2>
                 <p>Use the search function to find vocabulary words.</p>
                 {% if not session.logged_in %}
-                  <a class="btn btn-lg btn-default" href="{{url_for("login")}}" role="button">Login</a>
+                  <a class="btn btn-lg btn-primary" href="{{url_for("login")}}" role="button">Login</a>
                 {% endif %}
             </div>
         </div>

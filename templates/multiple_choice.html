@@ -1,36 +1,85 @@
-{% extends "layout.html" %}
-
-{% block title %} Multiple Choice Quiz {% endblock %}
-
-{% block body %}
+{% extends "layout.html" %} {% block title %} Multiple Choice Quiz {% endblock
+%} {% block content %}
 <div class="container">
-    <div class="row justify-content-center">
-        <div class="col-6">
-            <h1 class="text-center">Multiple Choice Quiz</h1>
-            <form action="{{ url_for('multiple_choice') }}" method="post">
-                <div class="form-group">
-                    <label for="question">Question:</label>
-                    <input type="text" class="form-control" id="question" name="cau_hoi" readonly>
-                </div>
-                <div class="form-group">
-                    <label for="choice_a">Choice A:</label>
-                    <input type="text" class="form-control" id="choice_a" name="choice_a" readonly>
-                </div>
-                <div class="form-group">
-                    <label for="choice_b">Choice B:</label>
-                    <input type="text" class="form-control" id="choice_b" name="choice_b" readonly>
-                </div>
-                <div class="form-group">
-                    <label for="choice_c">Choice C:</label>
-                    <input type="text" class="form-control" id="choice_c" name="choice_c" readonly>
-                </div>
-                <div class="form-group">
-                    <label for="correct_choice">Correct Choice:</label>
-                    <input type="text" class="form-control" id="correct_choice" name="correct_choice" readonly>
-                </div>
-                <button type="submit" class="btn btn-primary">Submit Answer</button>
-            </form>
+  <div class="row justify-content-center">
+    <div class="col-6">
+      <h1 class="text-center">Multiple Choice Quiz</h1>
+      <form
+        id="quiz-form"
+        action="{{ url_for('multiple_choice') }}"
+        method="post"
+      >
+        <div class="form-group">
+          <label for="question">Meaning of this word: </label>
+          <label for="question_text"> {{ question_text }}</label>
         </div>
+        {% for choice in choices %}
+        <div class="form-group">
+          <input
+            type="radio"
+            class="form-check-input"
+            id="choice_{{ loop.index }}"
+            name="user_choice"
+            value="{{ choice }}"
+          />
+          <label for="choice_{{ loop.index }}">{{ choice }}</label>
+        </div>
+        {% endfor %}
+        <input
+          type="hidden"
+          name="correct_answer"
+          value="{{ correct_answer }}"
+        />
+        <button type="submit" class="btn btn-primary">Submit Answer</button>
+        <button id="next-button" class="btn btn-secondary">
+          Next Question
+        </button>
+      </form>
+      <div id="message"></div>
+      <div id="score">Score: {{ session.score }}</div>
     </div>
+
+    <div class="col-6">
+      <div id="countdown"></div>
+    </div>
+  </div>
 </div>
+
+<script>
+    document.getElementById('quiz-form').addEventListener('submit', function(event) {
+        event.preventDefault();
+        var formData = new FormData(this);
+        fetch('{{ url_for('multiple_choice') }}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('message').textContent = data.message;
+            document.getElementById('score').textContent = 'Score: ' + data.score;
+
+            var radios = document.querySelectorAll('input[type=radio]');
+            for (var i = 0; i < radios.length; i++) {
+              radios[i].disabled = true;
+            }
+        });
+    });
+
+    document.getElementById('next-button').addEventListener('click', function() {
+        location.reload();
+    });
+
+    var timeLeft = 30;
+    var countdownTimer = setInterval(function() {
+      document.getElementById('countdown').textContent = 'Time left: ' + timeLeft + ' seconds';
+      timeLeft -= 1;
+
+      // When the countdown is over, reload the page
+      if (timeLeft < 0) {
+          clearInterval(countdownTimer);
+          location.reload();
+      }
+  }, 1000);
+</script>
+
 {% endblock %}

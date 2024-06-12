@@ -1,3 +1,5 @@
+import random
+from random import shuffle
 import os , re , logging
 from functools import wraps
 from sqlalchemy import create_engine, text
@@ -7,6 +9,7 @@ from flask_session import Session
 from flask_paginate import Pagination, get_page_parameter
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime
 
 # Load environment variables
 load_dotenv()
@@ -61,9 +64,9 @@ def validate_password(password):
 
 @app.route('/')
 def index():
-    # if session.get("email") is not None:
-    #     return render_template('index.html')
-    # else:
+    if session.get("email") is not None:
+        return render_template('home.html')
+    else:
         return render_template('index.html')
 
 # LOGIN , REGISTER , LOGOUT
@@ -190,7 +193,7 @@ def search():
 @login_required
 def create_vocabulary_page():
     try:
-        user_id = get_current_user_id()
+        user_id = session.get("user_id")
         data = request.json
         page_name = data.get('page_name')
         page_description = data.get('page_description', '')
@@ -216,7 +219,7 @@ def create_vocabulary_page():
 @app.route('/save_page', methods=['GET', 'POST'])
 @login_required
 def save_page():
-    user_id = get_current_user_id()
+    user_id = session.get("user_id")
     if request.method == 'POST':
         # Handle the form submission
         selected_words = request.form.getlist('selected_words')
@@ -268,7 +271,7 @@ def save_page():
 @login_required
 def et_vocabulary_pages():
     try:
-        user_id = get_current_user_id()  # Thay thế bằng phương thức của bạn để lấy ID người dùng hiện tại
+        user_id = session.get("user_id")
         with engine.connect() as connection:
             result = connection.execute(
                 text('SELECT page_id, page_name FROM VocabularyPage WHERE user_id = :user_id'),
@@ -357,7 +360,7 @@ def save_words():
 @login_required
 def VocabularyPage():
     try:
-        user_id = get_current_user_id()
+        user_id = session.get("user_id")
         if user_id is None:
             raise ValueError("User ID not found in session")
 
@@ -375,7 +378,7 @@ def VocabularyPage():
 @app.route('/view_page/<int:page_id>')
 @login_required
 def view_page(page_id):
-    user_id = get_current_user_id()
+    user_id = session.get("user_id")
     try:
         page = db.execute( text('SELECT * FROM VocabularyPage WHERE page_id = :page_id AND user_id = :user_id'),{"page_id": page_id, "user_id": user_id}).mappings().fetchone()
         
@@ -402,21 +405,23 @@ def view_page(page_id):
         logging.exception("Error viewing page")
         return render_template("error.html", message=str(e))
 
-@app.route('/matching_game', methods=['GET', 'POST'])
-def matching_game():
+# @app.route('/matching_game', methods=['GET', 'POST'])
+# def matching_game():
     
 
 @app.route('/flashcard', methods=['GET'])
 def flashcard():
-    try:
-        flashcard = db.execute(text('''
-            SELECT LearningProgress.*, Vocabulary.pronunciation, Vocabulary.meaning 
-            FROM LearningProgress 
-            JOIN Vocabulary ON LearningProgress.word_id = Vocabulary.word_id 
-            ORDER BY RANDOM() 
-            LIMIT 1
-        ''')).fetchone()
-        
+    try:    
+        # if 'email' in session:
+        #     flashcard = db.execute(text('''
+        #         SELECT LearningProgress.*, Vocabulary.pronunciation, Vocabulary.meaning 
+        #         FROM LearningProgress 
+        #         JOIN Vocabulary ON LearningProgress.word_id = Vocabulary.word_id 
+        #         ORDER BY RANDOM() 
+        #         LIMIT 1
+        #     ''')).fetchone()
+        # else:
+        flashcard = db.execute(text("SELECT * FROM Vocabulary ORDER BY RANDOM() LIMIT 1")).fetchone()
     except Exception as e:
         return render_template("error.html", message=str(e))
 
@@ -424,37 +429,85 @@ def flashcard():
         return render_template("error.html", message="No flashcards available")
     return render_template("flashcard.html", flashcard=flashcard)
 
+# @app.route('/multiple_choice', methods=['GET', 'POST'])
+# def multiple_choice():
+#     if request.method == 'POST':
+#         page_id = request.form.get('page_id')
+#         user_id = request.form.get('user_id')
+#         word_id = request.form.get('word_id')
+
+#         try:
+#             Vocabulary = db.execute(text('SELECT * FROM LearningProgress WHERE page_id = :page_id AND user_id = :user_id AND word_id = :word_id'), 
+#                         {"page_id": page_id, "user_id": user_id, "word_id": word_id}).fetchone()
+#             if Vocabulary is None:
+#                 return render_template("error.html", message="No vocabulary found")
+            
+#             question_text = Vocabulary.word
+#             correct_answer = Vocabulary.meaning
+
+#             # choices = db.execute(text('SELECT meaning FROM LearningProgress WHERE meaning != :correct_answer ORDER BY RANDOM() LIMIT 3')).fetchall()
+#             choices = db.execute(text('SELECT meaning FROM Vocabulary WHERE meaning != :correct_answer ORDER BY RANDOM() LIMIT 3')).fetchall()
+            
+#             choice_a = choices[0].meaning
+#             choice_b = choices[1].meaning
+#             choice_c = choices[2].meaning
+
+#             db.execute(text('INSERT INTO Questions (question_text, choice_a, choice_b, choice_c, correct_answer) VALUES (:question_text, :choice_a, :choice_b, :choice_c, :correct_answer)'), 
+#                        {"question_text": question_text, "choice_a": choice_a, "choice_b": choice_b, "choice_c": choice_c, "correct_answer": correct_answer})
+#             db.commit()
+#         except Exception as e:
+#             return render_template("error.html", message=str(e))
+
+#         return redirect(url_for('page'))
+
+#     return render_template('multiple_choice.html')
+
 @app.route('/multiple_choice', methods=['GET', 'POST'])
 def multiple_choice():
+    if 'score' not in session:
+            session['score'] = 0
     if request.method == 'POST':
-        page_id = request.form.get('page_id')
-        user_id = request.form.get('user_id')
-        word_id = request.form.get('word_id')
+        start_time = session.get('start_time')
+        end_time = datetime.now()
+        
+        user_choice = request.form.get('user_choice')
+        correct_answer = request.form.get('correct_answer')
 
-        try:
-            Vocabulary = db.execute(text('SELECT * FROM LearningProgress WHERE page_id = :page_id AND user_id = :user_id AND word_id = :word_id'), 
-                        {"page_id": page_id, "user_id": user_id, "word_id": word_id}).fetchone()
-            if Vocabulary is None:
-                return render_template("error.html", message="No vocabulary found")
+        message = "Correct!" if user_choice == correct_answer else f"Incorrect. The correct answer is: {correct_answer}"
+        
+        if user_choice == correct_answer:
+            session['score'] += 0.78
+            if (end_time - start_time).total_seconds() <= 5:
+                session['score'] += 1
+        return jsonify({'message': message})
 
-            cau_hoi = Vocabulary.word
-            correct_choice = Vocabulary.meaning
+    session['start_time'] = datetime.now()
 
-            choices = db.execute(text('SELECT meaning FROM LearningProgress WHERE meaning != :correct_choice ORDER BY RANDOM() LIMIT 3')).fetchall()
-            choice_a = choices[0].meaning
-            choice_b = choices[1].meaning
-            choice_c = choices[2].meaning
+    vocabulary = db.execute(text("SELECT * FROM Vocabulary ORDER BY RANDOM() LIMIT 1")).fetchone()
+    if vocabulary is None:
+         return render_template("error.html", message="No vocabulary found")
 
-            db.execute(text('INSERT INTO CauHoi (word, choice_a, choice_b, choice_c, correct_choice) VALUES (:cau_hoi, :choice_a, :choice_b, :choice_c, :correct_choice)'), 
-                       {"cau_hoi": cau_hoi, "choice_a": choice_a, "choice_b": choice_b, "choice_c": choice_c, "correct_choice": correct_choice})
-            db.commit()
-        except Exception as e:
-            return render_template("error.html", message=str(e))
+    question_text = vocabulary.word
+    correct_answer = vocabulary.meaning
 
-        return redirect(url_for('page'))
+    choices = db.execute(text('SELECT meaning FROM Vocabulary WHERE meaning != :correct_answer ORDER BY RANDOM() LIMIT 3'), 
+                        {"correct_answer": correct_answer}).fetchall()
 
-    return render_template('multiple_choice.html')
+    choices = [choice.meaning for choice in choices]
+    choices.append(correct_answer)
 
+    random.shuffle(choices)
+
+    db.execute(text('INSERT INTO Questions (question_text, choice_a, choice_b, choice_c, choice_d , correct_answer) VALUES (:question_text, :choice_a, :choice_b, :choice_c, :choice_d,  :correct_answer)'), 
+        {"question_text": question_text, "choice_a": choices[0], "choice_b": choices[1], "choice_c": choices[2],"choice_d" : choices[3] , "correct_answer": correct_answer})
+    db.commit()
+
+    return render_template('multiple_choice.html', question_text=question_text, choices=choices, correct_answer=correct_answer)
+
+@app.route('/view_session', methods=['GET'])
+def view_session():
+    session_data = {key: session[key] for key in session.keys()}
+    return jsonify(session_data)
 
 if __name__ == "__main__":
     app.run(debug=True)
