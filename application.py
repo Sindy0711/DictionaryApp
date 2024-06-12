@@ -10,6 +10,8 @@ from flask_paginate import Pagination, get_page_parameter
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
+import random
+from datetime import datetime
 
 # Load environment variables
 load_dotenv()
@@ -405,10 +407,7 @@ def view_page(page_id):
         logging.exception("Error viewing page")
         return render_template("error.html", message=str(e))
 
-# @app.route('/matching_game', methods=['GET', 'POST'])
-# def matching_game():
     
-
 @app.route('/flashcard', methods=['GET'])
 def flashcard():
     try:    
