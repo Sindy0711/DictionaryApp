@@ -7,6 +7,8 @@ from flask_session import Session
 from flask_paginate import Pagination, get_page_parameter
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
+import random
+from datetime import datetime
 
 # Load environment variables
 load_dotenv()
@@ -402,10 +404,7 @@ def view_page(page_id):
         logging.exception("Error viewing page")
         return render_template("error.html", message=str(e))
 
-@app.route('/matching_game', methods=['GET', 'POST'])
-def matching_game():
     
-
 @app.route('/flashcard', methods=['GET'])
 def flashcard():
     try:
@@ -454,6 +453,10 @@ def multiple_choice():
         return redirect(url_for('page'))
 
     return render_template('multiple_choice.html')
+
+#ghép từ
+#lấy từ và nghĩa từ bảng tuvung
+
 
 
 if __name__ == "__main__":
