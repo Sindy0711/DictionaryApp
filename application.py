@@ -489,21 +489,71 @@ def check_matching_answers():
     user_id = get_current_user_id()
 
     try:
+        word_ids = [item['ma_tu_vung'] for item in data]
+        print("Word IDs:", word_ids)  # Debug print
+
+        # Fetch correct answers from database
         correct_answers = db.execute(
             text('SELECT ma_tu_vung, nghia FROM TuVung WHERE ma_tu_vung IN :word_ids'),
-            {"word_ids": tuple(item['ma_tu_vung'] for item in data)}
+            {"word_ids": tuple(word_ids)}
         ).fetchall()
+        print("Correct Answers from DB:", correct_answers)  # Debug print
 
-        correct_answers_dict = {item[0]: item[1] for item in correct_answers}  # Use integer indices
+        correct_answers_dict = {str(row.ma_tu_vung): row.nghia for row in correct_answers}
+        print("Correct Answers Dict:", correct_answers_dict)  # Debug print
 
-        score = 0
+        # Check user answers
+        user_correct_answers = {}
         for item in data:
-            if correct_answers_dict.get(item['ma_tu_vung']) == item['nghia']:
-                score += 1
+            word_id = item['ma_tu_vung']
+            user_answer = item['nghia']
+            correct_answer = correct_answers_dict.get(str(word_id))
 
-        return jsonify({"status": "success", "message": f"Bạn đã trả lời đúng {score}/{len(data)} từ.", "correct_answers": correct_answers_dict})
+            if user_answer == correct_answer:
+                user_correct_answers[word_id] = user_answer
+
+        print("User Correct Answers:", user_correct_answers)  # Debug print
+
+        return jsonify({"status": "success", "correct_answers": user_correct_answers, "message": "Answers checked successfully."})
     except Exception as e:
-        logging.exception("Error checking matching answers")
+        logging.exception("Error checking answers")
+        return jsonify({"status": "error", "message": str(e)})
+
+
+@app.route('/update_points_matching_game', methods=['POST'])
+@login_required
+def update_points_matching_game():
+    data = request.get_json()
+    user_id = get_current_user_id()
+    ma_trang = data.get('ma_trang')
+
+    try:
+        points_per_correct = data['points_per_correct']
+        correct_answers = data['correct_answers']
+        total_points_added = 0
+
+        for word_id, correct_meaning in correct_answers.items():
+            result = db.execute(
+                text('SELECT diem FROM TienDoHocTu WHERE ma_trang = :ma_trang AND ma_tu_vung = :word_id AND ma_nguoi_dung = :user_id'),
+                {"ma_trang": ma_trang, "word_id": word_id, "user_id": user_id}
+            ).fetchone()
+
+            if result:
+                current_points = result['diem'] if result['diem'] is not None else 0
+                new_points = min(current_points + points_per_correct, 10)
+
+                db.execute(
+                    text('UPDATE TienDoHocTu SET diem = :new_points, lan_cuoi_hoc = CURRENT_TIMESTAMP WHERE ma_trang = :ma_trang AND ma_tu_vung = :word_id AND ma_nguoi_dung = :user_id'),
+                    {"new_points": new_points, "ma_trang": ma_trang, "word_id": word_id, "user_id": user_id}
+                )
+
+                total_points_added += new_points - current_points
+
+        db.commit()
+        return jsonify({"status": "success", "message": f"Points updated successfully. Total points added: {total_points_added}"})
+    except Exception as e:
+        logging.exception("Error updating points")
+        db.rollback()
         return jsonify({"status": "error", "message": str(e)})
 
 
