@@ -1,64 +1,64 @@
--- Bảng NguoiDung
-CREATE TABLE NguoiDung (
-    ma_nguoi_dung SERIAL PRIMARY KEY,
-    ten_dang_nhap VARCHAR(255) UNIQUE NOT NULL,
-    ten_nguoi_dung VARCHAR(255) UNIQUE NOT NULL,
+-- Bảng Users
+CREATE TABLE Users (
+    user_id SERIAL PRIMARY KEY,
+    username VARCHAR(255) UNIQUE NOT NULL,
+    full_name VARCHAR(255) UNIQUE NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
-    mat_khau VARCHAR(255) NOT NULL,
-    ngay_tao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    password VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Bảng TuVung
-CREATE TABLE TuVung (
-    ma_tu_vung SERIAL PRIMARY KEY,
-    tu VARCHAR(255) NOT NULL,
-    phienam VARCHAR,
-    nghia TEXT NOT NULL,
-    motachung TEXT,
-    vi_du TEXT,
+-- Bảng Vocabulary
+CREATE TABLE Vocabulary (
+    word_id SERIAL PRIMARY KEY,
+    word VARCHAR(255) NOT NULL,
+    pronunciation VARCHAR,
+    meaning TEXT NOT NULL,
+    description TEXT,
+    example TEXT
 );
-
--- Bảng TrangTuVung
-CREATE TABLE TrangTuVung (
-    ma_trang SERIAL PRIMARY KEY,
-    ten_trang VARCHAR(255),
+-- Bảng VocabularyPage
+CREATE TABLE VocabularyPage (
+    page_id SERIAL PRIMARY KEY,
+    page_name VARCHAR(255),
     icon TEXT,
-    mo_ta TEXT,
-    ma_nguoi_dung INT,
-    ngay_tao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (ma_nguoi_dung) REFERENCES NguoiDung(ma_nguoi_dung)
+    description TEXT,
+    user_id INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES Users(user_id)
 );
 
 -- Bảng CauHoi
-CREATE TABLE CauHoi (
-    ma_cau_hoi SERIAL PRIMARY KEY,
-    cau_hoi TEXT NOT NULL,
-    lua_chon_a TEXT NOT NULL,
-    lua_chon_b TEXT NOT NULL,
-    lua_chon_c TEXT NOT NULL,
-    lua_chon_d TEXT NOT NULL,
-    dap_an TEXT NOT NULL
-    FOREIGN KEY (ma_trang) REFERENCES TrangTuVung(ma_trang)
+CREATE TABLE Questions (
+    question_id SERIAL PRIMARY KEY,
+    question_text TEXT NOT NULL,
+    choice_a TEXT NOT NULL,
+    choice_b TEXT NOT NULL,
+    choice_c TEXT NOT NULL,
+    choice_d TEXT NOT NULL,
+    correct_answer TEXT NOT NULL,
+    page_id INT,
+    FOREIGN KEY (page_id) REFERENCES VocabularyPage(page_id)
 );
 
--- Bảng TienDoHocTu
-CREATE TABLE TienDoHocTu (
-    ma_trang INT,
-    ma_nguoi_dung INT,
-    ma_tu_vung INT,
-    diem INT NOT NULL,
-    ngay_hoc TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    lan_cuoi_hoc TIMESTAMP, 
-    PRIMARY KEY (ma_trang, ma_nguoi_dung, ma_tu_vung),
-    FOREIGN KEY (ma_nguoi_dung) REFERENCES NguoiDung(ma_nguoi_dung),
-    FOREIGN KEY (ma_tu_vung) REFERENCES TuVung(ma_tu_vung),
-    FOREIGN KEY (ma_trang) REFERENCES TrangTuVung(ma_trang)
+-- Bảng LearningProgress
+CREATE TABLE LearningProgress (
+    page_id INT,
+    user_id INT,
+    word_id INT,
+    score INT NOT NULL,
+    study_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_study_date TIMESTAMP,
+    PRIMARY KEY (page_id, user_id, word_id),
+    FOREIGN KEY (user_id) REFERENCES Users(user_id),
+    FOREIGN KEY (word_id) REFERENCES Vocabulary(word_id),
+    FOREIGN KEY (page_id) REFERENCES VocabularyPage(page_id)
 );
 
-CREATE TABLE TrangTuVungTuVung (
-    ma_trang INT REFERENCES TrangTuVung(ma_trang),
-    tu VARCHAR(255),
-    phienam VARCHAR(255),
-    nghia TEXT
+CREATE TABLE PageWords (
+    page_id INT REFERENCES VocabularyPage(page_id),
+    word_id INT REFERENCES Vocabulary(word_id),
+    word VARCHAR(255),
+    pronunciation VARCHAR(255),
+    meaning TEXT
 );
-

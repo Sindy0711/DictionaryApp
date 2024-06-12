@@ -17,9 +17,12 @@
         <tbody>
           {% for item in result %}
           <tr>
-            <td>{{ item.tu }}</td>
-            <td>{{ item.phienam }}</td>
-            <td>{{ item.nghia }}</td>
+            <td>{{ item.word }}</td>
+            <td>{{ item.pronunciation }}</td>
+            <td>{{ item.meaning }}</td>
+            <td>
+              <button class="btn btn-secondary btn-select" data-word="{{item.word}}" data-pronunciation="{{item.pronunciation}}" data-meaning="{{item.meaning}}" data-word_id="{{item.word_id}}">Chọn</button>
+            </td>
           </tr>
           {% endfor %}
         </tbody>

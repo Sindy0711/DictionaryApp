@@ -1,4 +1,14 @@
-{% extends "layout.html" %}
+{% extends "layout.html" %} 
 
 {% block content %}
-{% endblock %}
+<header>
+  <div class="menu">
+    <a href="{{ url_for('page')}}">Home</a>
+    <a class="btn btn-outline-light btn-success mr-2" href="{{ url_for('search') }}" role="button" >Search</a >
+    <a href="{{ url_for('multiple_choice')}}">Multiple choice</a>
+
+    <!-- <a href="{{ url_for('flashcard')}}">flashcard</a>
+                <a class="btn btn-outline-light btn-primary" href="{{ url_for('VocabularyPage') }}" role="button">Vocabulary page</a> -->
+  </div>
+</header>
+{% endblock content %}
