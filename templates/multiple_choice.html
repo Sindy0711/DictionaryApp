@@ -1,5 +1,6 @@
-{% extends "layout.html" %} {% block title %} Multiple Choice Quiz {% endblock
-%} {% block content %}
+{% extends "layout.html" %}
+{% block title %} Multiple Choice Quiz {% endblock %}
+{% block content %}
 <div class="container mt-5">
   <div class="row justify-content-center">
     <div class="col-md-8">
@@ -8,73 +9,35 @@
           <h2>Multiple Choice Quiz</h2>
         </div>
         <div class="card-body">
-          <form
-            id="quiz-form"
-            action="{{ url_for('multiple_choice') }}"
-            method="post"
-          >
+          <form id="quiz-form" action="{{ url_for('multiple_choice') }}" method="post">
             <div class="form-group">
               <h4 class="card-title">Meaning of this word:</h4>
-              <p class="card-text font-weight-bold" id="question-text">
-                {{ question_text }}
-              </p>
+              <p class="card-text font-weight-bold" id="question-text">{{ question_text }}</p>
             </div>
             {% for choice in choices %}
             <div class="form-check">
-              <input
-                type="radio"
-                class="form-check-input"
-                id="choice_{{ loop.index }}"
-                name="user_choice"
-                value="{{ choice }}"
-              />
-              <label class="form-check-label" for="choice_{{ loop.index }}"
-                >{{ choice }}</label
-              >
+              <input type="radio" class="form-check-input" id="choice_{{ loop.index }}" name="user_choice" value="{{ choice }}" />
+              <label class="form-check-label" for="choice_{{ loop.index }}">{{ choice }}</label>
             </div>
             {% endfor %}
-            <input
-              type="hidden"
-              name="correct_answer"
-              value="{{ correct_answer }}"
-            />
-            <input
-              type="hidden"
-              name="question_number"
-              value="{{ question_number }}"
-            />
+            <input type="hidden" name="correct_answer" value="{{ correct_answer }}" />
+            <input type="hidden" name="question_number" value="{{ question_number }}" />
             <div class="row mt-3">
               <div class="col-md-6">
-                <button
-                  id="submit-button"
-                  type="submit"
-                  class="btn btn-success btn-block"
-                >
-                  Submit Answer
-                </button>
+                <button id="submit-button" type="submit" class="btn btn-success btn-block">Submit Answer</button>
               </div>
               <div class="col-md-6">
-                <button
-                  id="next-button"
-                  type="submit"
-                  class="btn btn-primary btn-block"
-                >
-                  Next
-                </button>
+                <button id="next-button" type="submit" name="action" value="next" class="btn btn-primary btn-block">Next</button>
               </div>
             </div>
           </form>
-          {% if message %}
-          <div class="mt-3">
-            <p
-              id="message"
-              class="alert {% if message == 'Correct!' %}alert-success{% else %}alert-danger{% endif %}"
-              role="alert"
-            >
-              {{ message }}
-            </p>
-          </div>
-          {% endif %}
+          {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+              {% for category, message in messages %}
+                <div class="alert alert-{{ category }} mt-3">{{ message }}</div>
+              {% endfor %}
+            {% endif %}
+          {% endwith %}
         </div>
       </div>
     </div>
@@ -104,16 +67,14 @@
 
       if (countdownSeconds < 0) {
         clearInterval(timer);
-        document
-          .getElementById("submit-button")
-          .setAttribute("disabled", "disabled"); // Disable nút submit khi hết thời gian
+        document.getElementById("submit-button").setAttribute("disabled", "disabled"); // Disable nút submit khi hết thời gian
         setTimeout(function () {
           window.location.reload(); // Tải lại trang sau khi hết thời gian
         }, 1000);
       }
     }, 1000);
 
+   
   });
 </script>
-
 {% endblock %}
