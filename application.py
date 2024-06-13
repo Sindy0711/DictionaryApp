@@ -61,9 +61,6 @@ def validate_password(password):
         return "The password must contain at least one special character"
     return None
 
-
-
-
 @app.route('/')
 def index():
     if session.get("email") is not None:
@@ -125,16 +122,15 @@ def register():
 def login():
     session.clear()
     if request.method == "POST":
-        form_dang_nhap = request.form.get("username")
+        form_log_in = request.form.get("username")
         form_email = request.form.get("email")
         form_password = request.form.get("password")
 
-        if not form_email:
-            return render_template("error.html", message="must provide username")
-        elif not form_password:
-            return render_template("error.html", message="must provide password")
+        if not form_email or not form_password:
+            return render_template("error.html", message="must provide email and password")
+        
 
-        Q = db.execute(text("SELECT * FROM Users WHERE email LIKE :email AND username LIKE :username"), {"email": form_email, "username": form_dang_nhap}).fetchone()
+        Q = db.execute(text("SELECT * FROM Users WHERE email LIKE :email AND username LIKE :username"), {"email": form_email, "username": form_log_in}).fetchone()
         db.commit()
 
         if Q is None:
@@ -249,9 +245,9 @@ def save_page():
                 flash("Please enter a page name or select an existing page.")
                 return redirect(url_for('search'))
 
-            with engine.connect() as connection:
+            with engine.connect() as db:
                 if page_name:
-                    result = connection.execute(
+                    result = db.execute(
                         text('INSERT INTO VocabularyPage (page_name, user_id) VALUES (:page_name, :user_id) RETURNING page_id'),
                         {"page_name": page_name, "user_id": user_id})
                     page_id = result.fetchone()[0]
@@ -260,9 +256,9 @@ def save_page():
 
                 insert_query = text('INSERT INTO LearningProgress (page_id, user_id, word_id, score) VALUES (:page_id, :user_id, :word_id, 0)')
                 for word in selected_words:
-                    connection.execute(insert_query, {"page_id": page_id, "user_id": user_id, "word_id": word})
+                    db.execute(insert_query, {"page_id": page_id, "user_id": user_id, "word_id": word})
 
-                connection.commit()
+                db.commit()
 
             session['selected_words'] = []
             flash("Words saved successfully.")
@@ -290,12 +286,12 @@ def save_page():
 def et_vocabulary_pages():
     try:
         user_id = session.get("user_id")
-        with engine.connect() as connection:
-            result = connection.execute(
+        with engine.connect() as db:
+            result = db.execute(
                 text('SELECT page_id, page_name FROM VocabularyPage WHERE user_id = :user_id'),
                 {"user_id": user_id}
             ).fetchall()
-            pages = [{"page_id": row[0], "page_name": row[1]} for row in result]  # Chuyển tuple thành dictionary
+            pages = [{"page_id": row[0], "page_name": row[1]} for row in result] 
         return jsonify({"status": "success", "pages": pages})
     except Exception as e:
         logging.exception("Error fetching vocabulary pages")
@@ -314,15 +310,15 @@ def save_words_to_existing_page():
         if not existing_page_id:
             return jsonify({"status": "error", "message": "Existing page ID is required"})
 
-        with engine.connect() as connection:
-            word_count = connection.execute(text('SELECT COUNT(*) FROM LearningProgress WHERE page_id = :page_id'), {"page_id": existing_page_id}).scalar()
+        with engine.connect() as db:
+            word_count = db.execute(text('SELECT COUNT(*) FROM LearningProgress WHERE page_id = :page_id'), {"page_id": existing_page_id}).scalar()
             if word_count + len(selected_words) > 10:
                 return jsonify({"status": "error", "message": "The page already has too many words. Please create a new page."})
 
             for word in selected_words:
-                connection.execute(text('INSERT INTO LearningProgress (page_id, user_id, word_id, score) VALUES (:page_id, :user_id, :word_id, 0)'),
+                db.execute(text('INSERT INTO LearningProgress (page_id, user_id, word_id, score) VALUES (:page_id, :user_id, :word_id, 0)'),
                                    {"page_id": existing_page_id, "user_id": 1, "word_id": word['word_id']})
-            connection.commit()
+            db.commit()
 
         return jsonify({"status": "success"})
     except Exception as e:
@@ -333,45 +329,56 @@ def save_words_to_existing_page():
 @app.route('/saved_words', methods=['GET', 'POST'])
 @login_required
 def saved_words():
-    user_id = get_current_user_id()
     if request.method == 'POST':
-        # Handle the form submission
         selected_words = request.form.getlist('selected_words')
         page_name = request.form.get('page_name')
         existing_page_id = request.form.get('existing_page_id')
+
         try:
             if not page_name and not existing_page_id:
-                flash("Please enter a page name or select an existing page.")
+                flash("Vui lòng nhập tên trang hoặc chọn trang đã có.")
                 return redirect(url_for('saved_words'))
+            user_id = session.get("user_id")
 
-        # Retrieve user_id from session
-        user_id = session.get("user_id")
+            with engine.connect() as db:
+                if page_name:
+                    result = db.execute(
+                        text('INSERT INTO VocabularyPage (page_name, user_id) VALUES (:page_name, :user_id) RETURNING page_id'),
+                        {"page_name": page_name, "user_id": user_id}
+                    )
+                    page_id = result.fetchone()[0]
+                else:
+                    page_id = existing_page_id
 
-        with engine.connect() as connection:
-            if page_name:
-                result = connection.execute(text('INSERT INTO VocabularyPage (page_name, user_id) VALUES (:page_name, :user_id) RETURNING page_id'),
-                                            {"page_name": page_name, "user_id": user_id})
-                page_id = result.fetchone()[0]
-            else:
-                page_id = existing_page_id
+                word_count = db.execute(
+                    text('SELECT COUNT(*) FROM PageWords WHERE page_id = :page_id'),
+                    {"page_id": page_id}
+                ).scalar()
+                
+                if word_count + len(selected_words) > 10:
+                    flash("Trang đã có quá nhiều từ. Vui lòng tạo trang mới.")
+                    return redirect(url_for('search'))
 
-            word_count = connection.execute(text('SELECT COUNT(*) FROM PageWords WHERE page_id = :page_id'), {"page_id": page_id}).scalar()
-            if word_count + len(selected_words) > 10:
-                flash("The page already has too many words. Please create a new page.")
-                return redirect(url_for('search'))
+                # Chèn các từ đã chọn vào bảng PageWords
+                insert_query = text('INSERT INTO PageWords (page_id, word, pronunciation, meaning) VALUES (:page_id, :word, :pronunciation, :meaning)')
+                for word in selected_words:
+                    db.execute(
+                        insert_query,
+                        {"page_id": page_id, "word": word['word'], "pronunciation": word['pronunciation'], "meaning": word['meaning']}
+                    )
+                db.commit()
 
-            # Insert selected words into PageWords table
-            insert_query = text('INSERT INTO PageWords (page_id, word, pronunciation, meaning) VALUES (:page_id, :word, :pronunciation, :meaning)')
-            for word in selected_words:
-                connection.execute(insert_query, {"page_id": page_id, "word": word['word'], "pronunciation": word['pronunciation'], "meaning": word['meaning']})
-            connection.commit()
-
-        session['selected_words'] = []  # Clear session after saving
-        flash("Words saved successfully.")
-        return redirect(url_for('VocabularyPage'))
+            session['selected_words'] = []  # Xóa session sau khi lưu
+            flash("Lưu từ thành công.")
+            return redirect(url_for('vocabulary_page'))
+        
         except Exception as e:
-        logging.exception("Error saving words")
-        return render_template("error.html", message=str(e))
+            logging.exception("Lỗi khi lưu từ")
+            return render_template("error.html", message=str(e))
+    
+    # Xử lý yêu cầu GET
+    return render_template('saved_words.html')
+
     
 @app.route('/VocabularyPage')
 @login_required
@@ -476,53 +483,130 @@ def flashcard():
 
 #     return render_template('multiple_choice.html')
 
+
+
+# MULTIPLE CHOICE
 @app.route('/multiple_choice', methods=['GET', 'POST'])
 def multiple_choice():
     if 'score' not in session:
-            session['score'] = 0
+        session['score'] = 0
+    if 'question_number' not in session:
+        session['question_number'] = 0
+
     if request.method == 'POST':
         start_time = session.get('start_time')
         end_time = datetime.now()
         
         user_choice = request.form.get('user_choice')
         correct_answer = request.form.get('correct_answer')
+        question_number = int(request.form.get('question_number', 0))
 
-        message = "Correct!" if user_choice == correct_answer else f"Incorrect. The correct answer is: {correct_answer}"
-        
+        if correct_answer is None:
+            return render_template("error.html", message='Invalid question ID')
+
         if user_choice == correct_answer:
-            session['score'] += 0.78
             if (end_time - start_time).total_seconds() <= 5:
                 session['score'] += 1
-        return jsonify({'message': message})
+            else:
+                session['score'] += 0.12
+            flash("Correct!", "success")
+        else:
+            flash(f"Incorrect. The correct answer is: {correct_answer}", "danger")
+
+        session['question_number'] = question_number + 1
+
+        if session['question_number'] > 10:
+            return render_template("finished.html", score=session['score'])
 
     session['start_time'] = datetime.now()
 
-    vocabulary = db.execute(text("SELECT * FROM Vocabulary ORDER BY RANDOM() LIMIT 1")).fetchone()
-    if vocabulary is None:
-         return render_template("error.html", message="No vocabulary found")
+    if session['question_number'] > 10:
+        return render_template("finished.html", score=session['score'])
 
-    question_text = vocabulary.word
-    correct_answer = vocabulary.meaning
+    with engine.connect() as db:
+        vocabulary = db.execute(text("SELECT * FROM Vocabulary ORDER BY RANDOM() LIMIT 1")).fetchone()
+        if vocabulary is None:
+            return render_template("error.html", message="No vocabulary found")
 
-    choices = db.execute(text('SELECT meaning FROM Vocabulary WHERE meaning != :correct_answer ORDER BY RANDOM() LIMIT 3'), 
-                        {"correct_answer": correct_answer}).fetchall()
+        question_text = vocabulary.word
+        correct_answer = vocabulary.meaning
 
-    choices = [choice.meaning for choice in choices]
-    choices.append(correct_answer)
+        choices = db.execute(text('SELECT meaning FROM Vocabulary WHERE meaning != :correct_answer ORDER BY RANDOM() LIMIT 3'), 
+            {"correct_answer": correct_answer}
+        ).fetchall()
 
-    random.shuffle(choices)
+        choices = [choice.meaning for choice in choices]
+        choices.append(correct_answer)
+        random.shuffle(choices)
 
-    db.execute(text('INSERT INTO Questions (question_text, choice_a, choice_b, choice_c, choice_d , correct_answer) VALUES (:question_text, :choice_a, :choice_b, :choice_c, :choice_d,  :correct_answer)'), 
-        {"question_text": question_text, "choice_a": choices[0], "choice_b": choices[1], "choice_c": choices[2],"choice_d" : choices[3] , "correct_answer": correct_answer})
-    db.commit()
+        db.execute(
+            text('INSERT INTO Questions (question_text, choice_a, choice_b, choice_c, choice_d, correct_answer) VALUES (:question_text, :choice_a, :choice_b, :choice_c, :choice_d, :correct_answer)'), 
+            {"question_text": question_text, "choice_a": choices[0], "choice_b": choices[1], "choice_c": choices[2], "choice_d": choices[3], "correct_answer": correct_answer}
+        )
+        db.commit()
 
-    return render_template('multiple_choice.html', question_text=question_text, choices=choices, correct_answer=correct_answer)
+    return render_template('multiple_choice.html', question_text=question_text, choices=choices, correct_answer=correct_answer, question_number=session['question_number'])
+
+@app.route('/next', methods=['POST'])
+def next_question():
+    session['question_number'] += 1
+    return redirect(url_for('multiple_choice'))
+
+@app.route('/restart_quiz')
+def restart_quiz():
+    session['score'] = 0
+    session['question_number'] = 0
+    return redirect(url_for('multiple_choice'))
 
 @app.route('/view_session', methods=['GET'])
 def view_session():
     session_data = {key: session[key] for key in session.keys()}
+    session.pop('score', None)
+    session.pop('question_number', None)
     return jsonify(session_data)
 
+
+
+# FILL IN THE BLANK
+@app.route('/fill_in_the_blanks', methods=['GET', 'POST'])
+def fill_in_the_blanks():
+    if 'score' not in session:
+        session['score'] = 0
+    if 'question_number' not in session:
+        session['question_number'] = 0
+
+    if request.method == 'POST':
+        user_answer = request.form.get('user_answer')
+        correct_word = request.form.get('correct_word')
+        question_number = int(request.form.get('question_number', 0))
+
+        if user_answer.lower() == correct_word.lower():
+            flash("Correct!", "success")
+            session['score'] += 1
+        else:
+            flash(f"Incorrect. The correct word is: {correct_word}", "danger")
+
+        session['question_number'] = question_number + 1
+        return redirect(url_for('fill_in_the_blanks'))
+
+    if session['question_number'] >= 10:
+        return render_template("finished.html", score=session['score'])
+
+    with engine.connect() as db:
+        question = db.execute(text("SELECT * FROM Vocabulary ORDER BY RANDOM() LIMIT 1")).fetchone()
+        if question is None:
+            return render_template("error.html", message="No vocabulary found")
+
+        meaning = question.meaning
+        correct_word = question.word
+
+    return render_template('fill_in_the_blanks.html', meaning=meaning, correct_word=correct_word, question_number=session['question_number'])
+
+
+
+
+
+# MATCHING GAME
 @app.route('/matching_game')
 @login_required
 def matching_game():
@@ -543,7 +627,6 @@ def matching_game():
             flash("No words found for this page.")
             return redirect(url_for('trang_tu_vung'))
 
-        # Shuffle the meanings
         meanings = [word.nghia for word in words]
         random.shuffle(meanings)
 

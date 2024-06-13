@@ -8,12 +8,12 @@ body {
   font-family: Arial, sans-serif;
 }
 
-.btn {
+/* .btn {
   margin-top: 18px;
-}
+} */
 
 /*  */
-.card {
+.flashcard {
   --bg: #f7f7f8;
   --hover-bg: #bebfb0;
   --hover-text: #e50087;
@@ -33,15 +33,15 @@ body {
   
 }
 
-.card > :not(span) {
+.flashcard > :not(span) {
   transition: 0.3s cubic-bezier(0.6, 0.4, 0, 1);
 }
 
-.card > strong {
+.flashcard > strong {
   display: block;
   font-size: 2rem;
 }
-.card span {
+.flashcard span {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -55,16 +55,16 @@ body {
   top: 100%;
   transition: all 0.3s cubic-bezier(0.6, 0.4, 0, 1);
 }
-.card:hover span {
+.flashcard:hover span {
   top: 0;
   font-size: 1.2em;
 }
-.card:hover {
+.flashcard:hover {
   background: var(--hover-bg);
 }
 
-.card:hover > div,
-.card:hover > strong {
+.flashcard:hover > div,
+.flashcard:hover > strong {
   opacity: 0;
 }
 
@@ -223,7 +223,7 @@ table.table.\.list {
   margin-top: 10%;
 }
 
-.card-text {
+.flashcard-text {
   font-style: italic;
 }
 

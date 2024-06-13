@@ -1,6 +1,8 @@
 <!-- templates/list.html -->
-{% extends "layout.html" %}
-{% block title %}List{% endblock %}
+{% extends "layout.html" %} 
+
+{% block title %}List{% endblock %} 
+
 {% block content %}
 <div class="container">
   <div class="row">
@@ -9,9 +11,9 @@
       <table class="table list">
         <thead>
           <tr>
-            <th scope="col">Từ</th>
-            <th scope="col">Phiên Âm</th>
-            <th scope="col">Mô tả</th>
+            <th scope="col">Word</th>
+            <th scope="col">Pronunciation</th>
+            <th scope="col">Description</th>
           </tr>
         </thead>
         <tbody>
@@ -21,15 +23,23 @@
             <td>{{ item.pronunciation }}</td>
             <td>{{ item.meaning }}</td>
             <td>
-              <button class="btn btn-secondary btn-select" data-word="{{item.word}}" data-pronunciation="{{item.pronunciation}}" data-meaning="{{item.meaning}}" data-word_id="{{item.word_id}}">Chọn</button>
+              <button
+                class="btn btn-secondary btn-select"
+                data-word="{{item.word}}"
+                data-pronunciation="{{item.pronunciation}}"
+                data-meaning="{{item.meaning}}"
+                data-word_id="{{item.word_id}}"
+              >
+                Chọn
+              </button>
             </td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
       {% else %}
-      <p>Không tìm thấy kết quả nào</p>
-      {% endif %}
+      <p>No result is found</p>
+      {% endif %} 
       {% if pagination %}
       <div class="row">
         <div class="col">{{ pagination.links }}</div>
