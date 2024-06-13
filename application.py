@@ -188,7 +188,7 @@ def search():
             return render_template("error.html", message="Your query did not match any documents")
         return render_template("list.html", result=result)
 
-@app.route('/saved_words', methods=['GET', 'POST'], endpoint='search_saved_words')
+@app.route('/saved_words', methods=['GET', 'POST'], endpoint='search_saved_words_list')
 def search_saved_words():
     if request.method == "GET":
         return render_template("saved_words.html")
@@ -197,7 +197,7 @@ def search_saved_words():
         if query is None:
             return render_template("error.html", message="Search field cannot be empty!")
         try:
-            result = db.execute(text('SELECT * FROM tuvung WHERE LOWER(tu) LIKE :query'), {"query": "%" + query.lower() + "%"}).fetchall()
+            result = db.execute(text('SELECT * FROM Vocabulary WHERE LOWER(word) LIKE :query'), {"query": "%" + query.lower() + "%"}).fetchall()
         except Exception as e:
             return render_template("error.html", message=str(e))
         if not result:
@@ -264,7 +264,6 @@ def save_page():
             session['selected_words'] = []
             flash("Words saved successfully.")
             return redirect(url_for('VocabularyPage'))
-
         except Exception as e:
             logging.exception("Error saving words")
             return render_template("error.html", message=str(e))
@@ -282,7 +281,7 @@ def save_page():
             logging.exception("Error fetching vocabulary pages")
             return render_template("error.html", message=str(e))
 
-@app.route('/api/et_vocabulary_pages', methods=['GET'])
+@app.route('/api/get_vocabulary_pages', methods=['GET'])
 @login_required
 def et_vocabulary_pages():
     try:
@@ -331,44 +330,73 @@ def save_words_to_existing_page():
 @login_required
 def saved_words():
     user_id = get_current_user_id()
+    
     if request.method == 'POST':
         # Handle the form submission
         selected_words = request.form.getlist('selected_words')
         page_name = request.form.get('page_name')
         existing_page_id = request.form.get('existing_page_id')
+
+        if not selected_words:
+            flash("No words selected. Please select words to save.")
+            return redirect(url_for('saved_words'))
+
+        if not page_name and not existing_page_id:
+            flash("Please enter a page name or select an existing page.")
+            return redirect(url_for('saved_words'))
+
         try:
-            if not page_name and not existing_page_id:
-                flash("Please enter a page name or select an existing page.")
-                return redirect(url_for('saved_words'))
+            with engine.connect() as connection:
+                if page_name:
+                    # Create a new vocabulary page
+                    result = connection.execute(
+                        text('INSERT INTO VocabularyPage (page_name, user_id) VALUES (:page_name, :user_id) RETURNING page_id'),
+                        {"page_name": page_name, "user_id": user_id}
+                    )
+                    page_id = result.fetchone()[0]
+                else:
+                    # Use the existing page
+                    page_id = int(existing_page_id)
 
-        # Retrieve user_id from session
-        user_id = session.get("user_id")
+                # Check the current number of words in the page
+                word_count = connection.execute(
+                    text('SELECT COUNT(*) FROM PageWords WHERE page_id = :page_id'),
+                    {"page_id": page_id}
+                ).scalar()
 
-        with engine.connect() as connection:
-            if page_name:
-                result = connection.execute(text('INSERT INTO VocabularyPage (page_name, user_id) VALUES (:page_name, :user_id) RETURNING page_id'),
-                                            {"page_name": page_name, "user_id": user_id})
-                page_id = result.fetchone()[0]
-            else:
-                page_id = existing_page_id
+                if word_count + len(selected_words) > 10:
+                    flash("The page already has too many words. Please create a new page.")
+                    return redirect(url_for('saved_words'))
 
-            word_count = connection.execute(text('SELECT COUNT(*) FROM PageWords WHERE page_id = :page_id'), {"page_id": page_id}).scalar()
-            if word_count + len(selected_words) > 10:
-                flash("The page already has too many words. Please create a new page.")
-                return redirect(url_for('search'))
+                # Insert selected words into the PageWords table
+                insert_query = text(
+                    'INSERT INTO PageWords (page_id, word, pronunciation, meaning) VALUES (:page_id, :word, :pronunciation, :meaning)'
+                )
+                for word_data in selected_words:
+                    word = word_data['word']
+                    pronunciation = word_data['pronunciation']
+                    meaning = word_data['meaning']
+                    connection.execute(insert_query, {
+                        "page_id": page_id,
+                        "word": word,
+                        "pronunciation": pronunciation,
+                        "meaning": meaning
+                    })
+                
+                connection.commit()
 
-            # Insert selected words into PageWords table
-            insert_query = text('INSERT INTO PageWords (page_id, word, pronunciation, meaning) VALUES (:page_id, :word, :pronunciation, :meaning)')
-            for word in selected_words:
-                connection.execute(insert_query, {"page_id": page_id, "word": word['word'], "pronunciation": word['pronunciation'], "meaning": word['meaning']})
-            connection.commit()
+            # Clear session after saving
+            session['selected_words'] = []
+            flash("Words saved successfully.")
+            return redirect(url_for('saved_words'))
 
-        session['selected_words'] = []  # Clear session after saving
-        flash("Words saved successfully.")
-        return redirect(url_for('VocabularyPage'))
         except Exception as e:
-        logging.exception("Error saving words")
-        return render_template("error.html", message=str(e))
+            logging.exception("Error saving words")
+            return render_template("error.html", message=str(e))
+
+    # If GET request, show the saved words page
+    return render_template('saved_words.html')
+
     
 @app.route('/VocabularyPage')
 @login_required
@@ -481,20 +509,20 @@ def matching_game():
 
     if not page_id:
         flash("Page ID is required.")
-        return redirect(url_for('trang_tu_vung'))
+        return redirect(url_for('page'))
 
     try:
         words = db.execute(
-        text('SELECT * FROM TuVung WHERE ma_tu_vung IN (SELECT ma_tu_vung FROM TienDoHocTu WHERE ma_trang = :page_id AND ma_nguoi_dung = :user_id) ORDER BY RANDOM() LIMIT 5'),
-        {"page_id": page_id, "user_id": user_id}
-    ).fetchall()
+            text('SELECT * FROM Vocabulary WHERE word_id IN (SELECT word_id FROM LearningProgress WHERE page_id = :page_id AND user_id = :user_id) ORDER BY RANDOM() LIMIT 5'),
+            {"page_id": page_id, "user_id": user_id}
+        ).fetchall()
 
         if not words:
             flash("No words found for this page.")
-            return redirect(url_for('trang_tu_vung'))
+            return redirect(url_for('page'))
 
         # Shuffle the meanings
-        meanings = [word.nghia for word in words]
+        meanings = [word.meaning for word in words]
         random.shuffle(meanings)
 
         return render_template('matching_game.html', words=words, meanings=meanings)
@@ -509,24 +537,30 @@ def check_matching_answers():
     user_id = get_current_user_id()
 
     try:
-        word_ids = [item['ma_tu_vung'] for item in data]
+        word_ids = [item['word_id'] for item in data]
         print("Word IDs:", word_ids)  # Debug print
+
+        # Validate word_ids to ensure they are all integers
+        word_ids = [int(word_id) for word_id in word_ids if str(word_id).isdigit()]
+
+        if not word_ids:
+            raise ValueError("Invalid word_ids: All word_ids must be integers.")
 
         # Fetch correct answers from database
         correct_answers = db.execute(
-            text('SELECT ma_tu_vung, nghia FROM TuVung WHERE ma_tu_vung IN :word_ids'),
+            text('SELECT word_id, meaning FROM Vocabulary WHERE word_id IN :word_ids'),
             {"word_ids": tuple(word_ids)}
         ).fetchall()
         print("Correct Answers from DB:", correct_answers)  # Debug print
 
-        correct_answers_dict = {str(row.ma_tu_vung): row.nghia for row in correct_answers}
+        correct_answers_dict = {str(row.word_id): row.meaning for row in correct_answers}
         print("Correct Answers Dict:", correct_answers_dict)  # Debug print
 
         # Check user answers
         user_correct_answers = {}
         for item in data:
-            word_id = item['ma_tu_vung']
-            user_answer = item['nghia']
+            word_id = item['word_id']
+            user_answer = item['meaning']
             correct_answer = correct_answers_dict.get(str(word_id))
 
             if user_answer == correct_answer:
@@ -545,29 +579,38 @@ def check_matching_answers():
 def update_points_matching_game():
     data = request.get_json()
     user_id = get_current_user_id()
-    ma_trang = data.get('ma_trang')
+    page_id = data.get('page_id')
 
     try:
         points_per_correct = data['points_per_correct']
         correct_answers = data['correct_answers']
+        word_ids = list(correct_answers.keys())
+
+        # Validate word_ids to ensure they are all integers
+        word_ids = [int(word_id) for word_id in word_ids if str(word_id).isdigit()]
+
+        if not word_ids:
+            raise ValueError("Invalid word_ids: All word_ids must be integers.")
+
+        # Fetch existing scores
+        existing_scores = db.execute(
+            text('SELECT word_id, score FROM LearningProgress WHERE page_id = :page_id AND word_id IN :word_ids AND user_id = :user_id'),
+            {"page_id": page_id, "word_ids": tuple(word_ids), "user_id": user_id}
+        ).fetchall()
+
         total_points_added = 0
 
-        for word_id, correct_meaning in correct_answers.items():
-            result = db.execute(
-                text('SELECT score FROM TienDoHocTu WHERE ma_trang = :ma_trang AND ma_tu_vung = :word_id AND ma_nguoi_dung = :user_id'),
-                {"ma_trang": ma_trang, "word_id": word_id, "user_id": user_id}
-            ).fetchone()
+        for row in existing_scores:
+            word_id = row['word_id']
+            current_points = row['score'] if row['score'] is not None else 0
+            new_points = min(current_points + points_per_correct, 10)
 
-            if result:
-                current_points = result['score'] if result['score'] is not None else 0
-                new_points = min(current_points + points_per_correct, 10)
+            db.execute(
+                text('UPDATE LearningProgress SET score = :new_points, last_study_date = CURRENT_TIMESTAMP WHERE page_id = :page_id AND word_id = :word_id AND user_id = :user_id'),
+                {"new_points": new_points, "page_id": page_id, "word_id": word_id, "user_id": user_id}
+            )
 
-                db.execute(
-                    text('UPDATE TienDoHocTu SET score = :new_points, lan_cuoi_hoc = CURRENT_TIMESTAMP WHERE ma_trang = :ma_trang AND ma_tu_vung = :word_id AND ma_nguoi_dung = :user_id'),
-                    {"new_points": new_points, "ma_trang": ma_trang, "word_id": word_id, "user_id": user_id}
-                )
-
-                total_points_added += new_points - current_points
+            total_points_added += new_points - current_points
 
         db.commit()
         return jsonify({"status": "success", "message": f"Points updated successfully. Total points added: {total_points_added}"})
@@ -575,6 +618,7 @@ def update_points_matching_game():
         logging.exception("Error updating points")
         db.rollback()
         return jsonify({"status": "error", "message": str(e)})
+
 
 
 if __name__ == "__main__":

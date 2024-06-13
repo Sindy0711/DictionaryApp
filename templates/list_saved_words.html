@@ -18,11 +18,11 @@
         <tbody>
           {% for item in result %}
           <tr>
-            <td>{{ item.tu }}</td>
-            <td>{{ item.phienam }}</td>
-            <td>{{ item.nghia }}</td>
+            <td>{{ item.word }}</td>
+            <td>{{ item.pronunciation }}</td>
+            <td>{{ item.meaning }}</td>
             <td>
-              <button class="btn btn-secondary btn-select" data-tu="{{item.tu}}" data-phienam="{{item.phienam}}" data-nghia="{{item.nghia}}" data-ma_tu_vung="{{item.ma_tu_vung}}">Add</button>
+              <button class="btn btn-secondary btn-select" data-word="{{item.word}}" data-pronunciation="{{item.pronunciation}}" data-meaning="{{item.meaning}}" data-word_id ="{{item.word_id}}">Add</button>
             </td>
           </tr>
           {% endfor %}
@@ -59,7 +59,7 @@
       </div>
     </div>
   </div>
-  <a href="{{ url_for('trang_tu_vung') }}" class="btn btn-primary">Back to Pages</a>
+  <a href="{{ url_for('VocabularyPage') }}" class="btn btn-primary">Back to Pages</a>
 </div>
 
 

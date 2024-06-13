@@ -21,9 +21,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     } catch (error) {
       console.error("Error loading vocabulary pages:", error);
-      alert(
-        "An error occurred while loading vocabulary pages. Please try again later."
-      );
+      
     }
   }
 
@@ -89,50 +87,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
-
-//tạo trang mới
-document.addEventListener("DOMContentLoaded", () => {
-  const createPageForm = document.getElementById("create-page-form");
-
-  createPageForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-
-    const pageName = document.getElementById("page-name").value.trim();
-    const pageDescription = document
-      .getElementById("page-description")
-      .value.trim();
-
-    if (!pageName) {
-      alert("Page name is required");
-      return;
-    }
-
-    try {
-      const response = await fetch("/create_vocabulary_page", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          page_name: pageName,
-          page_description: pageDescription,
-        }),
-      });
-
-      const data = await response.json();
-      if (data.status === "success") {
-        alert("Tạo trang thành công!");
-        window.location.reload();
-      } else {
-        alert(`Lỗi: ${data.message}`);
-      }
-    } catch (error) {
-      console.error("Error creating page:", error);
-      alert("An error occurred while creating the page. Please try again.");
-    }
-  });
-});
-
 
 //tạo trang mới
 document.addEventListener('DOMContentLoaded', () => {
