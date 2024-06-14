@@ -85,7 +85,7 @@ def register():
             if not field:
                 return render_template("register.html", message="All fields must be filled in") 
         
-         # Kiểm tra xem mật khẩu có hợp lệ không
+         # Kiểm tra xem mật khẩu có hợp lệ không    
         password_error = validate_password(password1)
         if password_error:
             return render_template("register.html", message=password_error)
@@ -537,11 +537,13 @@ def check_matching_answers():
     user_id = get_current_user_id()
 
     try:
+        print("Incoming Data:", data)  # Debug print
         word_ids = [item['word_id'] for item in data]
-        print("Word IDs:", word_ids)  # Debug print
+        print("Extracted Word IDs:", word_ids)  # Debug print
 
         # Validate word_ids to ensure they are all integers
-        word_ids = [int(word_id) for word_id in word_ids if str(word_id).isdigit()]
+        word_ids = [int(word_id) for word_id in word_ids if word_id is not None and isinstance(word_id, int)]
+        print("Validated Word IDs:", word_ids)  # Debug print
 
         if not word_ids:
             raise ValueError("Invalid word_ids: All word_ids must be integers.")
@@ -553,7 +555,7 @@ def check_matching_answers():
         ).fetchall()
         print("Correct Answers from DB:", correct_answers)  # Debug print
 
-        correct_answers_dict = {str(row.word_id): row.meaning for row in correct_answers}
+        correct_answers_dict = {row.word_id: row.meaning for row in correct_answers}
         print("Correct Answers Dict:", correct_answers_dict)  # Debug print
 
         # Check user answers
@@ -561,7 +563,7 @@ def check_matching_answers():
         for item in data:
             word_id = item['word_id']
             user_answer = item['meaning']
-            correct_answer = correct_answers_dict.get(str(word_id))
+            correct_answer = correct_answers_dict.get(word_id)
 
             if user_answer == correct_answer:
                 user_correct_answers[word_id] = user_answer
@@ -573,53 +575,66 @@ def check_matching_answers():
         logging.exception("Error checking answers")
         return jsonify({"status": "error", "message": str(e)})
 
+from sqlalchemy.sql import text
 
 @app.route('/update_points_matching_game', methods=['POST'])
-@login_required
+@login_required  # Yêu cầu người dùng đăng nhập
 def update_points_matching_game():
     data = request.get_json()
-    user_id = get_current_user_id()
-    page_id = data.get('page_id')
+    user_id = get_current_user_id()  # Lấy ID của người dùng hiện tại từ hàm get_current_user_id()
+
+    # Cấu hình logging
+    logging.basicConfig(level=logging.DEBUG)
 
     try:
-        points_per_correct = data['points_per_correct']
-        correct_answers = data['correct_answers']
+        # Lấy thông tin từ request JSON
+        points_per_correct = data.get('points_per_correct')
+        correct_answers = data.get('correct_answers')
+        page_id = data.get('page_id')
+
+        if not points_per_correct or not correct_answers or not page_id:
+            raise ValueError("Missing required fields in JSON data")
+
+        # Lấy danh sách word_ids từ correct_answers
         word_ids = list(correct_answers.keys())
 
-        # Validate word_ids to ensure they are all integers
+        # Xác thực word_ids để đảm bảo tất cả đều là số nguyên
         word_ids = [int(word_id) for word_id in word_ids if str(word_id).isdigit()]
+        logging.debug(f"Validated Word IDs: {word_ids}")
 
         if not word_ids:
             raise ValueError("Invalid word_ids: All word_ids must be integers.")
 
-        # Fetch existing scores
-        existing_scores = db.execute(
-            text('SELECT word_id, score FROM LearningProgress WHERE page_id = :page_id AND word_id IN :word_ids AND user_id = :user_id'),
-            {"page_id": page_id, "word_ids": tuple(word_ids), "user_id": user_id}
-        ).fetchall()
+        # Truy vấn điểm hiện tại từ cơ sở dữ liệu
+        query = LearningProgress.query.filter(
+            LearningProgress.page_id == page_id,
+            LearningProgress.word_id.in_(word_ids),
+            LearningProgress.user_id == user_id
+        ).with_for_update().all()
+
+        if not query:
+            logging.warning(f"No existing scores found for page_id={page_id}, user_id={user_id}, word_ids={word_ids}")
 
         total_points_added = 0
 
-        for row in existing_scores:
-            word_id = row['word_id']
-            current_points = row['score'] if row['score'] is not None else 0
+        # Cập nhật điểm cho từng từ
+        for row in query:
+            current_points = row.score if row.score is not None else 0
             new_points = min(current_points + points_per_correct, 10)
 
-            db.execute(
-                text('UPDATE LearningProgress SET score = :new_points, last_study_date = CURRENT_TIMESTAMP WHERE page_id = :page_id AND word_id = :word_id AND user_id = :user_id'),
-                {"new_points": new_points, "page_id": page_id, "word_id": word_id, "user_id": user_id}
-            )
+            # Thực hiện cập nhật vào cơ sở dữ liệu
+            row.score = new_points
+            row.last_study_date = datetime.utcnow()
+            db.session.commit()
 
             total_points_added += new_points - current_points
 
-        db.commit()
         return jsonify({"status": "success", "message": f"Points updated successfully. Total points added: {total_points_added}"})
+
     except Exception as e:
-        logging.exception("Error updating points")
-        db.rollback()
-        return jsonify({"status": "error", "message": str(e)})
-
-
+        logging.error(f"Error updating points: {e}")
+        db.session.rollback()
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(debug=True)

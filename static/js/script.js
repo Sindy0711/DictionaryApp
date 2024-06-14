@@ -21,7 +21,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     } catch (error) {
       console.error("Error loading vocabulary pages:", error);
-      
     }
   }
 
@@ -35,6 +34,11 @@ document.addEventListener("DOMContentLoaded", () => {
         meaning: button.getAttribute("data-meaning"),
         word_id: button.getAttribute("data-word_id"),
       };
+
+      if (selectedWords.some(selectedWord => selectedWord.word_id === word.word_id)) {
+        alert("This word is already selected.");
+        return;
+      }
 
       if (selectedWords.length < 10) {
         selectedWords.push(word);
@@ -87,6 +91,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
+
 
 //tạo trang mới
 document.addEventListener('DOMContentLoaded', () => {
