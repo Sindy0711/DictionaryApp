@@ -42,14 +42,6 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-def get_current_user_id():
-    user_id = session.get("user_id")
-    if user_id:
-        logging.debug(f"Current user_id from session: {user_id}")
-    else:
-        logging.debug("No user_id found in session")
-    return user_id
-
 def validate_password(password):
     if len(password) < 8:
         return "Password must be at least 8 characters long"
@@ -60,6 +52,35 @@ def validate_password(password):
     elif not re.search('[^a-zA-Z0-9]', password):
         return "The password must contain at least one special character"
     return None
+
+def get_random_question():
+    with engine.connect() as db:
+        question = db.execute(text("SELECT * FROM Vocabulary ORDER BY RANDOM() LIMIT 1")).fetchone()
+        return question
+def process_multiple_choice(user_choice, correct_answer, start_time):
+    end_time = datetime.now()
+    if user_choice == correct_answer:
+        if (end_time - start_time).total_seconds() <= 5:
+            session['score'] += 1
+        else:
+            session['score'] += 0.12
+        flash(f"Correct!", "success")
+    else:
+        flash(f"Incorrect. The correct answer is: {correct_answer}", "danger")
+    session['question_number'] += 1
+
+def get_random_choices(correct_answer,column):
+    with engine.connect() as db:
+        choices = db.execute(
+            text(f'SELECT {column} FROM Vocabulary WHERE {column} != :correct_answer ORDER BY RANDOM() LIMIT 3'),
+            {"correct_answer": correct_answer}
+        ).fetchall()
+        return [choice[0] for choice in choices]
+
+# Hàm render câu hỏi
+def render_question(question_text, correct_answer, choices):
+    random.shuffle(choices)
+    return render_template('multiple_choice.html', question_text=question_text, choices=choices, correct_answer=correct_answer, question_number=session['question_number'])
 
 @app.route('/')
 def index():
@@ -450,102 +471,56 @@ def flashcard():
         return render_template("error.html", message="No flashcards available")
     return render_template("flashcard.html", flashcard=flashcard)
 
-# @app.route('/multiple_choice', methods=['GET', 'POST'])
-# def multiple_choice():
-#     if request.method == 'POST':
-#         page_id = request.form.get('page_id')
-#         user_id = request.form.get('user_id')
-#         word_id = request.form.get('word_id')
-
-#         try:
-#             Vocabulary = db.execute(text('SELECT * FROM LearningProgress WHERE page_id = :page_id AND user_id = :user_id AND word_id = :word_id'), 
-#                         {"page_id": page_id, "user_id": user_id, "word_id": word_id}).fetchone()
-#             if Vocabulary is None:
-#                 return render_template("error.html", message="No vocabulary found")
-            
-#             question_text = Vocabulary.word
-#             correct_answer = Vocabulary.meaning
-
-#             # choices = db.execute(text('SELECT meaning FROM LearningProgress WHERE meaning != :correct_answer ORDER BY RANDOM() LIMIT 3')).fetchall()
-#             choices = db.execute(text('SELECT meaning FROM Vocabulary WHERE meaning != :correct_answer ORDER BY RANDOM() LIMIT 3')).fetchall()
-            
-#             choice_a = choices[0].meaning
-#             choice_b = choices[1].meaning
-#             choice_c = choices[2].meaning
-
-#             db.execute(text('INSERT INTO Questions (question_text, choice_a, choice_b, choice_c, correct_answer) VALUES (:question_text, :choice_a, :choice_b, :choice_c, :correct_answer)'), 
-#                        {"question_text": question_text, "choice_a": choice_a, "choice_b": choice_b, "choice_c": choice_c, "correct_answer": correct_answer})
-#             db.commit()
-#         except Exception as e:
-#             return render_template("error.html", message=str(e))
-
-#         return redirect(url_for('page'))
-
-#     return render_template('multiple_choice.html')
-
-
-
-# MULTIPLE CHOICE
-@app.route('/multiple_choice', methods=['GET', 'POST'])
-def multiple_choice():
-    if 'score' not in session:
-        session['score'] = 0
-    if 'question_number' not in session:
-        session['question_number'] = 0
+@app.route('/quiz', methods=['GET', 'POST'])
+def quiz():
+    session.setdefault('score', 0)
+    session.setdefault('question_number', 0)
 
     if request.method == 'POST':
-        start_time = session.get('start_time')
-        end_time = datetime.now()
-        
+        quiz_type = request.form.get('quiz_type')
+        if quiz_type in ['fill_in_the_blanks', 'word_to_meaning', 'meaning_to_word']:
+            return redirect(url_for(quiz_type))
+
+    return render_template('quiz.html')
+
+@app.route('/multiple_choice', methods=['GET', 'POST'])
+def multiple_choice():
+    return quiz_route('meaning', 'word')
+
+
+@app.route('/word_to_meaning', methods=['GET', 'POST'])
+def word_to_meaning():
+    return quiz_route('word', 'meaning')
+
+@app.route('/meaning_to_word', methods=['GET', 'POST'])
+def meaning_to_word():
+    return quiz_route('meaning', 'word')
+
+def quiz_route(question_col, answer_col):
+    session.setdefault('score', 0)
+    session.setdefault('question_number', 0)
+
+    if request.method == 'POST':
         user_choice = request.form.get('user_choice')
         correct_answer = request.form.get('correct_answer')
-        question_number = int(request.form.get('question_number', 0))
+        start_time = session.get('start_time')
 
-        if correct_answer is None:
-            return render_template("error.html", message='Invalid question ID')
-
-        if user_choice == correct_answer:
-            if (end_time - start_time).total_seconds() <= 5:
-                session['score'] += 1
-            else:
-                session['score'] += 0.12
-            flash("Correct!", "success")
-        else:
-            flash(f"Incorrect. The correct answer is: {correct_answer}", "danger")
-
-        session['question_number'] = question_number + 1
-
-        if session['question_number'] > 10:
+        process_multiple_choice(user_choice, correct_answer, start_time)
+        if session['question_number'] >= 10:
             return render_template("finished.html", score=session['score'])
 
     session['start_time'] = datetime.now()
+    question = get_random_question()
+    if question is None:
+        return render_template("error.html", message="Không tìm thấy từ vựng nào")
 
-    if session['question_number'] > 10:
-        return render_template("finished.html", score=session['score'])
+    question_text = getattr(question, question_col)
+    correct_answer = getattr(question, answer_col)
 
-    with engine.connect() as db:
-        vocabulary = db.execute(text("SELECT * FROM Vocabulary ORDER BY RANDOM() LIMIT 1")).fetchone()
-        if vocabulary is None:
-            return render_template("error.html", message="No vocabulary found")
+    choices = get_random_choices(correct_answer, answer_col)
+    choices.append(correct_answer)
 
-        question_text = vocabulary.word
-        correct_answer = vocabulary.meaning
-
-        choices = db.execute(text('SELECT meaning FROM Vocabulary WHERE meaning != :correct_answer ORDER BY RANDOM() LIMIT 3'), 
-            {"correct_answer": correct_answer}
-        ).fetchall()
-
-        choices = [choice.meaning for choice in choices]
-        choices.append(correct_answer)
-        random.shuffle(choices)
-
-        db.execute(
-            text('INSERT INTO Questions (question_text, choice_a, choice_b, choice_c, choice_d, correct_answer) VALUES (:question_text, :choice_a, :choice_b, :choice_c, :choice_d, :correct_answer)'), 
-            {"question_text": question_text, "choice_a": choices[0], "choice_b": choices[1], "choice_c": choices[2], "choice_d": choices[3], "correct_answer": correct_answer}
-        )
-        db.commit()
-
-    return render_template('multiple_choice.html', question_text=question_text, choices=choices, correct_answer=correct_answer, question_number=session['question_number'])
+    return render_question(question_text, correct_answer, choices)
 
 @app.route('/next', methods=['POST'])
 def next_question():
@@ -556,24 +531,12 @@ def next_question():
 def restart_quiz():
     session['score'] = 0
     session['question_number'] = 0
-    return redirect(url_for('multiple_choice'))
+    return redirect(url_for('quiz'))
 
-@app.route('/view_session', methods=['GET'])
-def view_session():
-    session_data = {key: session[key] for key in session.keys()}
-    session.pop('score', None)
-    session.pop('question_number', None)
-    return jsonify(session_data)
-
-
-
-# FILL IN THE BLANK
 @app.route('/fill_in_the_blanks', methods=['GET', 'POST'])
 def fill_in_the_blanks():
-    if 'score' not in session:
-        session['score'] = 0
-    if 'question_number' not in session:
-        session['question_number'] = 0
+    session.setdefault('score', 0)
+    session.setdefault('question_number', 0)
 
     if request.method == 'POST':
         user_answer = request.form.get('user_answer')
@@ -587,30 +550,32 @@ def fill_in_the_blanks():
             flash(f"Incorrect. The correct word is: {correct_word}", "danger")
 
         session['question_number'] = question_number + 1
+        if session['question_number'] >= 10:
+            return render_template("finished.html", score=session['score'])
+
         return redirect(url_for('fill_in_the_blanks'))
 
-    if session['question_number'] >= 10:
-        return render_template("finished.html", score=session['score'])
+    question = get_random_question()
+    if question is None:
+        return render_template("error.html", message="No vocabulary found")
 
-    with engine.connect() as db:
-        question = db.execute(text("SELECT * FROM Vocabulary ORDER BY RANDOM() LIMIT 1")).fetchone()
-        if question is None:
-            return render_template("error.html", message="No vocabulary found")
-
-        meaning = question.meaning
-        correct_word = question.word
+    meaning = question.meaning
+    correct_word = question.word
 
     return render_template('fill_in_the_blanks.html', meaning=meaning, correct_word=correct_word, question_number=session['question_number'])
 
-
-
-
+@app.route('/view_session', methods=['GET'])
+def view_session():
+    session_data = {key: session[key] for key in session.keys()}
+    session.pop('score', None)
+    session.pop('question_number', None)
+    return jsonify(session_data)
 
 # MATCHING GAME
 @app.route('/matching_game')
 @login_required
 def matching_game():
-    user_id = get_current_user_id()
+    user_id = session.get("user_id")
     page_id = request.args.get('page_id')
 
     if not page_id:
@@ -619,7 +584,7 @@ def matching_game():
 
     try:
         words = db.execute(
-        text('SELECT * FROM TuVung WHERE ma_tu_vung IN (SELECT ma_tu_vung FROM TienDoHocTu WHERE ma_trang = :page_id AND ma_nguoi_dung = :user_id) ORDER BY RANDOM() LIMIT 5'),
+        text('SELECT * FROM TuVung WHERE user_id IN (SELECT user_id FROM TienDoHocTu WHERE ma_trang = :page_id AND ma_nguoi_dung = :user_id) ORDER BY RANDOM() LIMIT 5'),
         {"page_id": page_id, "user_id": user_id}
     ).fetchall()
 
@@ -627,7 +592,7 @@ def matching_game():
             flash("No words found for this page.")
             return redirect(url_for('trang_tu_vung'))
 
-        meanings = [word.nghia for word in words]
+        meanings = [word.meaning for word in words]
         random.shuffle(meanings)
 
         return render_template('matching_game.html', words=words, meanings=meanings)
@@ -639,27 +604,27 @@ def matching_game():
 @login_required
 def check_matching_answers():
     data = request.get_json()
-    user_id = get_current_user_id()
+    user_id = session.get("user_id")
 
     try:
-        word_ids = [item['ma_tu_vung'] for item in data]
+        word_ids = [item['user_id'] for item in data]
         print("Word IDs:", word_ids)  # Debug print
 
         # Fetch correct answers from database
         correct_answers = db.execute(
-            text('SELECT ma_tu_vung, nghia FROM TuVung WHERE ma_tu_vung IN :word_ids'),
+            text('SELECT user_id, meaning FROM TuVung WHERE user_id IN :word_ids'),
             {"word_ids": tuple(word_ids)}
         ).fetchall()
         print("Correct Answers from DB:", correct_answers)  # Debug print
 
-        correct_answers_dict = {str(row.ma_tu_vung): row.nghia for row in correct_answers}
+        correct_answers_dict = {str(row.user_id): row.meaning for row in correct_answers}
         print("Correct Answers Dict:", correct_answers_dict)  # Debug print
 
         # Check user answers
         user_correct_answers = {}
         for item in data:
-            word_id = item['ma_tu_vung']
-            user_answer = item['nghia']
+            word_id = item['user_id']
+            user_answer = item['meaning']
             correct_answer = correct_answers_dict.get(str(word_id))
 
             if user_answer == correct_answer:
@@ -677,7 +642,7 @@ def check_matching_answers():
 @login_required
 def update_points_matching_game():
     data = request.get_json()
-    user_id = get_current_user_id()
+    user_id = session.get("user_id")
     ma_trang = data.get('ma_trang')
 
     try:
@@ -687,7 +652,7 @@ def update_points_matching_game():
 
         for word_id, correct_meaning in correct_answers.items():
             result = db.execute(
-                text('SELECT score FROM TienDoHocTu WHERE ma_trang = :ma_trang AND ma_tu_vung = :word_id AND ma_nguoi_dung = :user_id'),
+                text('SELECT score FROM TienDoHocTu WHERE ma_trang = :ma_trang AND user_id = :word_id AND ma_nguoi_dung = :user_id'),
                 {"ma_trang": ma_trang, "word_id": word_id, "user_id": user_id}
             ).fetchone()
 
@@ -696,7 +661,7 @@ def update_points_matching_game():
                 new_points = min(current_points + points_per_correct, 10)
 
                 db.execute(
-                    text('UPDATE TienDoHocTu SET score = :new_points, lan_cuoi_hoc = CURRENT_TIMESTAMP WHERE ma_trang = :ma_trang AND ma_tu_vung = :word_id AND ma_nguoi_dung = :user_id'),
+                    text('UPDATE TienDoHocTu SET score = :new_points, lan_cuoi_hoc = CURRENT_TIMESTAMP WHERE ma_trang = :ma_trang AND user_id = :word_id AND ma_nguoi_dung = :user_id'),
                     {"new_points": new_points, "ma_trang": ma_trang, "word_id": word_id, "user_id": user_id}
                 )
 

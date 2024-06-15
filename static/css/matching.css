@@ -24,6 +24,7 @@ h1 {
     width: 45%;
 }
 
+
 .words, .meanings {
     display: flex;
     flex-direction: column;

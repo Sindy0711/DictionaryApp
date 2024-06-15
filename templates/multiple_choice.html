@@ -1,33 +1,35 @@
 {% extends "layout.html" %}
 {% block title %} Multiple Choice Quiz {% endblock %}
 {% block content %}
-<div class="container mt-5">
+<div class="container mt-5 custom-quiz">
   <div class="row justify-content-center">
     <div class="col-md-8">
-      <div class="card">
+      <div class="card shadow-lg">
         <div class="card-header bg-primary text-white text-center">
           <h2>Multiple Choice Quiz</h2>
         </div>
         <div class="card-body">
           <form id="quiz-form" action="{{ url_for('multiple_choice') }}" method="post">
-            <div class="form-group">
-              <h4 class="card-title">Meaning of this word:</h4>
-              <p class="card-text font-weight-bold" id="question-text">{{ question_text }}</p>
+            <div class="form-group align-items-center mb-4">
+              <h4 class="card-title mr-3 text-center">Meaning of this word:</h4>
+              <p class="card-text font-weight-bold display-4 text-center text-danger" id="question-text">{{ question_text }}</p>
             </div>
             {% for choice in choices %}
-            <div class="form-check">
-              <input type="radio" class="form-check-input" id="choice_{{ loop.index }}" name="user_choice" value="{{ choice }}" />
-              <label class="form-check-label" for="choice_{{ loop.index }}">{{ choice }}</label>
-            </div>
+                <div class="form-check mb-2">
+                    <button type="button" class="btn btn-outline-primary w-100 text-center btn-multiple-choice" id="choice_{{ loop.index }}" name="user_choice" value="{{ choice }}" onclick="selectChoice('{{ choice }}')">
+                        {{ choice }}
+                    </button>
+                </div>
             {% endfor %}
             <input type="hidden" name="correct_answer" value="{{ correct_answer }}" />
             <input type="hidden" name="question_number" value="{{ question_number }}" />
+            <input type="hidden" name="user_choice" id="user_choice" value="" />
             <div class="row mt-3">
-              <div class="col-md-6">
-                <button id="submit-button" type="submit" class="btn btn-success btn-block">Submit Answer</button>
+              <div class="col-md-6 mb-2 mb-md-0">
+                <button id="submit-button" type="submit" class="btn btn-success btn-block shadow-sm">Submit Answer</button>
               </div>
               <div class="col-md-6">
-                <button id="next-button" type="submit" name="action" value="next" class="btn btn-primary btn-block">Next</button>
+                <button id="next-button" type="submit" name="action" value="next" class="btn btn-primary btn-block shadow-sm">Next</button>
               </div>
             </div>
           </form>
@@ -41,8 +43,8 @@
         </div>
       </div>
     </div>
-    <div class="col-md-4">
-      <div class="card">
+    <div class="col-md-2">
+      <div class="card shadow-lg">
         <div class="card-header bg-warning text-white text-center">
           <h4>Countdown Timer</h4>
         </div>
@@ -54,27 +56,4 @@
   </div>
 </div>
 
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
-    var countdownElement = document.getElementById("countdown");
-    var nextButton = document.getElementById("next-button");
-    var countdownSeconds = 30;
-    var submitted = false;
-
-    var timer = setInterval(function () {
-      countdownElement.textContent = countdownSeconds + "s";
-      countdownSeconds--;
-
-      if (countdownSeconds < 0) {
-        clearInterval(timer);
-        document.getElementById("submit-button").setAttribute("disabled", "disabled"); // Disable nút submit khi hết thời gian
-        setTimeout(function () {
-          window.location.reload(); // Tải lại trang sau khi hết thời gian
-        }, 1000);
-      }
-    }, 1000);
-
-   
-  });
-</script>
 {% endblock %}
