@@ -9,33 +9,37 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/matching.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/view.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <!-- Link JS -->
+     <script src="{{ url_for('static', filename='js/quiz.js') }}" defer></script>
     <title>{% block title %} {% endblock %}</title>
   </head>
   <body>
     <nav class="navbar navbar-expand-lg bg-dark">
         <div class="container">
-          <a class="navbar-brand" href="{{ url_for('index') }}"><img src="" alt="Logo" /></a>
+          <a class="navbar-brand text-white" href="{{ url_for('index') }}"><img src="" alt="Logo" /></a>
           <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
+          <div class="d-flex">
           <div class="collapse navbar-collapse" id="#navbarNav">
-              <ul class="navbar-nav ml-auto">
-              {% if session.logged_in %}
-                <li class="nav-item active">
-                  <h6 class="nav-link color-default"> Welcome, {{ session.full_name }}</h6>
-                </li>
-                <!-- <li class="nav-item">
-                  <a class="btn btn-outline-light btn-success mr-2" href="{{ url_for('search') }}" role="button">Tìm kiếm</a>
-                </li> -->
-                <li class="nav-item">
-                  <li>
-                    <a href="{{ url_for('logout') }}"><button class="btn btn-primary float-right" type="submit">Log out</button></a>
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0 d-flex align-items-center">
+                {% if session.logged_in %}
+                  <li class="nav-item active">
+                    <h6 class="nav-link color-default text-white mt-2"> Welcome, {{ session.full_name }}</h6>
                   </li>
-                </li>
-              {% else %}
-                <li class="nav-item">
-                  <a href="{{ url_for('register')}}"><button class="btn btn-default" type="submit">Sign up</button></a>
-                </li>
-              {% endif %}
-              </ul>
+                  <!-- <li class="nav-item">
+                    <a class="btn btn-outline-light btn-success mr-2" href="{{ url_for('search') }}" role="button">Tìm kiếm</a>
+                  </li> -->
+                  <li class="nav-item">
+                    <li>
+                      <a href="{{ url_for('logout') }}"><button class="btn btn-primary float-right" type="submit">Log out</button></a>
+                    </li>
+                  </li>
+                {% else %}
+                  <li class="nav-item">
+                    <a href="{{ url_for('register')}}"><button class="btn btn-default " type="submit">Sign up</button></a>
+                  </li>
+                {% endif %}
+                </ul>
+            </div>
           </div>
         </div>
       </nav>

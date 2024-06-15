@@ -1,85 +1,59 @@
-{% extends "layout.html" %} {% block title %} Multiple Choice Quiz {% endblock
-%} {% block content %}
-<div class="container">
+{% extends "layout.html" %}
+{% block title %} Multiple Choice Quiz {% endblock %}
+{% block content %}
+<div class="container mt-5 custom-quiz">
   <div class="row justify-content-center">
-    <div class="col-6">
-      <h1 class="text-center">Multiple Choice Quiz</h1>
-      <form
-        id="quiz-form"
-        action="{{ url_for('multiple_choice') }}"
-        method="post"
-      >
-        <div class="form-group">
-          <label for="question">Meaning of this word: </label>
-          <label for="question_text"> {{ question_text }}</label>
+    <div class="col-md-8">
+      <div class="card shadow-lg">
+        <div class="card-header bg-primary text-white text-center">
+          <h2>Multiple Choice Quiz</h2>
         </div>
-        {% for choice in choices %}
-        <div class="form-group">
-          <input
-            type="radio"
-            class="form-check-input"
-            id="choice_{{ loop.index }}"
-            name="user_choice"
-            value="{{ choice }}"
-          />
-          <label for="choice_{{ loop.index }}">{{ choice }}</label>
+        <div class="card-body">
+          <form id="quiz-form" action="{{ url_for('multiple_choice') }}" method="post">
+            <div class="form-group align-items-center mb-4">
+              <h4 class="card-title mr-3 text-center">Meaning of this word:</h4>
+              <p class="card-text font-weight-bold display-4 text-center text-danger" id="question-text">{{ question_text }}</p>
+            </div>
+            {% for choice in choices %}
+                <div class="form-check mb-2">
+                    <button type="button" class="btn btn-outline-primary w-100 text-center btn-multiple-choice" id="choice_{{ loop.index }}" name="user_choice" value="{{ choice }}" onclick="selectChoice('{{ choice }}')">
+                        {{ choice }}
+                    </button>
+                </div>
+            {% endfor %}
+            <input type="hidden" name="correct_answer" value="{{ correct_answer }}" />
+            <input type="hidden" name="question_number" value="{{ question_number }}" />
+            <input type="hidden" name="user_choice" id="user_choice" value="" />
+            <div class="row mt-3">
+              <div class="col-md-6 mb-2 mb-md-0">
+                <button id="submit-button" type="submit" class="btn btn-success btn-block shadow-sm">Submit Answer</button>
+              </div>
+              <div class="col-md-6">
+                <button id="next-button" type="submit" name="action" value="next" class="btn btn-primary btn-block shadow-sm">Next</button>
+              </div>
+            </div>
+          </form>
+          {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+              {% for category, message in messages %}
+                <div class="alert alert-{{ category }} mt-3">{{ message }}</div>
+              {% endfor %}
+            {% endif %}
+          {% endwith %}
         </div>
-        {% endfor %}
-        <input
-          type="hidden"
-          name="correct_answer"
-          value="{{ correct_answer }}"
-        />
-        <button type="submit" class="btn btn-primary">Submit Answer</button>
-        <button id="next-button" class="btn btn-secondary">
-          Next Question
-        </button>
-      </form>
-      <div id="message"></div>
-      <div id="score">Score: {{ session.score }}</div>
+      </div>
     </div>
-
-    <div class="col-6">
-      <div id="countdown"></div>
+    <div class="col-md-2">
+      <div class="card shadow-lg">
+        <div class="card-header bg-warning text-white text-center">
+          <h4>Countdown Timer</h4>
+        </div>
+        <div class="card-body">
+          <div class="display-4 text-center" id="countdown"></div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
-
-<script>
-    document.getElementById('quiz-form').addEventListener('submit', function(event) {
-        event.preventDefault();
-        var formData = new FormData(this);
-        fetch('{{ url_for('multiple_choice') }}', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            document.getElementById('message').textContent = data.message;
-            document.getElementById('score').textContent = 'Score: ' + data.score;
-
-            var radios = document.querySelectorAll('input[type=radio]');
-            for (var i = 0; i < radios.length; i++) {
-              radios[i].disabled = true;
-            }
-        });
-    });
-
-    document.getElementById('next-button').addEventListener('click', function() {
-        location.reload();
-    });
-
-    var timeLeft = 30;
-    var countdownTimer = setInterval(function() {
-      document.getElementById('countdown').textContent = 'Time left: ' + timeLeft + ' seconds';
-      timeLeft -= 1;
-
-      // When the countdown is over, reload the page
-      if (timeLeft < 0) {
-          clearInterval(countdownTimer);
-          location.reload();
-      }
-  }, 1000);
-</script>
 
 {% endblock %}

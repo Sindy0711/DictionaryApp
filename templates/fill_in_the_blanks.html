@@ -1,0 +1,50 @@
+{% extends "layout.html" %}
+{% block title %} Fill in the Blanks Quiz {% endblock %}
+{% block content %}
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="card shadow">
+        <div class="card-header bg-primary text-white text-center">
+          <h2>Fill in the Blanks Quiz</h2>
+        </div>
+        <div class="card-body">
+          <form action="{{ url_for('fill_in_the_blanks') }}" method="post">
+            <div class="form-group">
+              <h4 class="card-title text-center">Enter the word that matches this meaning:</h4>
+              <p class="card-text font-weight-bold text-danger text-center">{{ meaning }}</p>
+            </div>
+            <div class="form-group mt-4">
+              <label for="user_answer">Your Answer:</label>
+              <input type="text" class="form-control" id="user_answer" name="user_answer" required />
+            </div>
+            <input type="hidden" name="correct_word" value="{{ correct_word }}" />
+            <input type="hidden" name="question_number" value="{{ question_number }}" />
+            <div class="d-flex justify-content-between mt-4">
+              <button id="submit-button" type="submit" class="btn btn-success">Submit Answer</button>
+              <button type="submit" class="btn btn-primary" name="action" value="next">Next</button>
+            </div>
+          </form>
+          {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+              {% for category, message in messages %}
+                <div class="alert alert-{{ category }} mt-3">{{ message }}</div>
+              {% endfor %}
+            {% endif %}
+          {% endwith %}
+        </div>
+      </div>
+    </div>
+    <div class="col-md-2">
+      <div class="card shadow-lg">
+        <div class="card-header bg-warning text-white text-center">
+          <h4>Countdown Timer</h4>
+        </div>
+        <div class="card-body">
+          <div class="display-4 text-center" id="countdown"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
