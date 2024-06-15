@@ -3,30 +3,32 @@
 {% block title %}View Page{% endblock %}
 
 {% block content %}
-<div class="container">
-  <div class="content-wrapper">
-    <h2>{{ page.page_name }}</h2>
-    {% if words %}
-    <div class="table">
-      <div class="row header">
-        <div class="cell">Từ</div>
-        <div class="cell">Phiên Âm</div>
-        <div class="cell">Nghĩa</div>
-        <div class="cell">Điểm</div>
-      </div>
-      {% for word in words %}
-      <div class="row">
-        <div class="cell">{{ word.word }}</div>
-        <div class="cell">{{ word.pronunciation }}</div>
-        <div class="cell">{{ word.meaning }}</div>
-        <div class="cell">{{ word.score }}</div>
-      </div>
-      {% endfor %}
+<div class="view-page">
+    <div class="container">
+        <div class="content-wrapper">
+            <h2>{{ page.page_name }}</h2>
+            {% if words %}
+            <div class="table">
+                <div class="row header">
+                    <div class="cell">Từ</div>
+                    <div class="cell">Phiên Âm</div>
+                    <div class="cell">Nghĩa</div>
+                    <div class="cell">Điểm</div>
+                </div>
+                {% for word in words %}
+                <div class="row">
+                    <div class="cell">{{ word.word }}</div>
+                    <div class="cell">{{ word.pronunciation }}</div>
+                    <div class="cell">{{ word.meaning }}</div>
+                    <div class="cell">{{ word.score }}</div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p>No words found</p>
+            {% endif %}
+        </div>
+        <a href="{{ url_for('VocabularyPage') }}" class="btn btn-primary">Back to Pages</a>
     </div>
-    {% else %}
-    <p>No words found</p>
-    {% endif %}
-  </div>
-  <a href="{{ url_for('VocabularyPage') }}" class="btn btn-primary">Back to Pages</a>
 </div>
 {% endblock %}

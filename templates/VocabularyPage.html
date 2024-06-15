@@ -13,10 +13,10 @@
             <ul id="pages-list">
                 {% for page in pages %}
                 <li class="mb-3">
-                    <p><strong>Page name:</strong> {{ page.ten_trang }}</p>
-                    <p><strong>Describe:</strong> {{ page.mo_ta or "Không có mô tả" }}</p>
-                    <a href="{{ url_for('view_page', page_id=page.ma_trang) }}" class="btn btn-info mt-2">See vocabulary</a>
-                    <a href="{{ url_for('matching_game', page_id=page.ma_trang) }}" class="btn btn-secondary mt-2">Play word matching game</a>
+                    <p><strong>Page name:</strong> {{ page. page_name}}</p>
+                    <p><strong>Describe:</strong> {{ page. page_description or "Không có mô tả" }}</p>
+                    <a href="{{ url_for('view_page', page_id=page. page_id) }}" class="btn btn-info mt-2">See vocabulary</a>
+                    <a href="{{ url_for('matching_game', page_id=page. page_id) }}" class="btn btn-secondary mt-2">Play word matching game</a>
                 </li>
                 {% endfor %}
             </ul>
