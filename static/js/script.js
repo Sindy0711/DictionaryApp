@@ -2,7 +2,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const selectedWords = [];
   const selectedWordsContainer = document.getElementById("selected-words");
   const saveWordsBtn = document.getElementById("save-words-btn");
-  const selectPageForm = document.getElementById("select-page-form");
   const existingPageSelect = document.getElementById("existing-page");
   const createPageForm = document.getElementById("create-page-form");
   const createPageBtn = document.getElementById("create-page-btn");
@@ -27,18 +26,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Function to render selected words
-  function renderSelectedWords() {
-    selectedWordsContainer.innerHTML = "";
-    selectedWords.forEach((word) => {
-      const div = document.createElement("div");
-      div.textContent = `${word.word} - ${word.pronunciation} - ${word.meaning}`;
-      selectedWordsContainer.appendChild(div);
-    });
-    saveWordsBtn.disabled = selectedWords.length === 0;
-    selectPageForm.style.display = selectedWords.length > 0 ? "block" : "none";
-  }
-
   // Add event listeners to word selection buttons
   document.querySelectorAll(".btn-select").forEach((button) => {
     button.addEventListener("click", () => {
@@ -49,11 +36,7 @@ document.addEventListener("DOMContentLoaded", () => {
         word_id: button.getAttribute("data-word_id"),
       };
 
-      if (
-        selectedWords.some(
-          (selectedWord) => selectedWord.word_id === word.word_id
-        )
-      ) {
+      if (selectedWords.some((selectedWord) => selectedWord.word_id === word.word_id)) {
         alert("This word is already selected.");
         return;
       }
@@ -66,48 +49,23 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   });
-  // Handle form submission for creating a new page
-  createPageForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
 
-    const pageName = document.getElementById("page-name").value.trim();
-    const pageDescription = document
-      .getElementById("page-description")
-      .value.trim();
+  // Function to render selected words
+  function renderSelectedWords() {
+    selectedWordsContainer.innerHTML = "";
+    selectedWords.forEach((word) => {
+      const div = document.createElement("div");
+      div.textContent = `${word.word} - ${word.pronunciation} - ${word.meaning}`;
+      selectedWordsContainer.appendChild(div);
+    });
+    saveWordsBtn.disabled = selectedWords.length === 0;
+    document.getElementById("select-page-form").style.display = selectedWords.length > 0 ? "block" : "none";
+  }
 
-    if (!pageName) {
-      alert("Page name is required");
-      return;
-    }
-
-    try {
-      const response = await fetch("/create_vocabulary_page", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          page_name: pageName,
-          page_description: pageDescription,
-        }),
-      });
-
-      const data = await response.json();
-      if (data.status === "success") {
-        alert("Page created successfully!");
-        window.location.reload();
-      } else {
-        alert(`Error: ${data.message}`);
-      }
-    } catch (error) {
-      console.error("Error creating page:", error);
-      alert("An error occurred while creating the page. Please try again.");
-    }
-  });
   // Handle form submission for saving words to an existing page
-  selectPageForm.addEventListener("submit", async (event) => {
+  document.getElementById("existing-page-form").addEventListener("submit", async (event) => {
     event.preventDefault();
-    const existingPageId = document.getElementById("existing-page").value;
+    const existingPageId = existingPageSelect.value;
 
     if (!existingPageId) {
       alert("Please select a page to save vocabulary.");
@@ -134,12 +92,6 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("Error when saving words:", error);
       alert("An error occurred while saving the words. Please try again.");
     }
-  });
-
-  // Toggle the visibility of the create page form
-  createPageBtn.addEventListener("click", () => {
-    createPageForm.style.display =
-      createPageForm.style.display === "none" ? "block" : "none";
   });
 
   // Load vocabulary pages on page load

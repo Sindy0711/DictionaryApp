@@ -1,4 +1,3 @@
-
 {% extends "layout.html" %}
 {% block title %}Add words to the page{% endblock %}
 {% block content %}
@@ -22,7 +21,7 @@
             <td>{{ item.pronunciation }}</td>
             <td>{{ item.meaning }}</td>
             <td>
-              <button class="btn btn-secondary btn-select" data-word="{{item.word}}" data-pronunciation="{{item.pronunciation}}" data-meaning="{{item.meaning}}" data-word_id ="{{item.word_id}}">Add</button>
+              <button class="btn btn-secondary btn-select" data-word="{{item.word}}" data-pronunciation="{{item.pronunciation}}" data-meaning="{{item.meaning}}" data-word_id="{{item.word_id}}">Add</button>
             </td>
           </tr>
           {% endfor %}
@@ -43,15 +42,15 @@
       <div id="selected-words">
         <!-- Các từ đã chọn sẽ hiển thị ở đây -->
       </div>
-      <button id="save-words-btn" class="btn btn-primary" onclick="showSelectPageForm()">Save words</button>
+      <button id="save-words-btn" class="btn btn-primary">Save words</button>
       <div id="select-page-form" style="display:none;">
         <h4>Select an existing vocabulary page</h4>
-        <form id="select-page-form">
+        <form id="existing-page-form">
           <div class="form-group">
             <label for="existing-page">Select page:</label>
             <select id="existing-page" class="form-control">
               <option value="">--Select page--</option>
-              <!-- Các trang sẽ được thêm động ở đây -->
+              <!-- Các trang sẽ được thêm động ở đây bằng JavaScript -->
             </select>
           </div>
           <button type="submit" class="btn btn-success">Save to page</button>
@@ -61,8 +60,6 @@
   </div>
   <a href="{{ url_for('VocabularyPage') }}" class="btn btn-primary">Back to Pages</a>
 </div>
-
-
 
 <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 {% endblock %}

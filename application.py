@@ -573,13 +573,13 @@ def matching_game():
 
     try:
         words = db.execute(
-        text('SELECT * FROM TuVung WHERE user_id IN (SELECT user_id FROM TienDoHocTu WHERE ma_trang = :page_id AND ma_nguoi_dung = :user_id) ORDER BY RANDOM() LIMIT 5'),
+        text('SELECT * FROM Vocabulary WHERE word_id IN (SELECT word_id FROM LearningProgress WHERE page_id = :page_id AND user_id = :user_id) ORDER BY RANDOM() LIMIT 5'),
         {"page_id": page_id, "user_id": user_id}
     ).fetchall()
 
         if not words:
-            flash("No words found for this page.")
-            return redirect(url_for('page'))
+            flash("No words found in the selected vocabulary page. Please add words before playing the game.")
+            return redirect(url_for('VocabularyPage'))
 
         meanings = [word.meaning for word in words]
         random.shuffle(meanings)
@@ -587,34 +587,43 @@ def matching_game():
         return render_template('matching_game.html', words=words, meanings=meanings)
     except Exception as e:
         logging.exception("Error fetching words for matching game")
-        return render_template("error.html", message=str(e))
+        flash("An error occurred while fetching words for the matching game. Please try again.")
+        return redirect(url_for('VocabularyPage'))
 
 @app.route('/check_matching_answers', methods=['POST'])
 @login_required
 def check_matching_answers():
     data = request.get_json()
-    user_id = session.get("user_id")
+    user_id = session.get('user_id')
 
     try:
-        word_ids = [item['user_id'] for item in data]
-        print("Word IDs:", word_ids)  # Debug print
+        print("Incoming Data:", data)  # Debug print
+        word_ids = [item['word_id'] for item in data]
+        print("Extracted Word IDs:", word_ids)  # Debug print
+
+        # Validate word_ids to ensure they are all integers
+        word_ids = [int(word_id) for word_id in word_ids if word_id is not None and isinstance(word_id, int)]
+        print("Validated Word IDs:", word_ids)  # Debug print
+
+        if not word_ids:
+            raise ValueError("Invalid word_ids: All word_ids must be integers.")
 
         # Fetch correct answers from database
         correct_answers = db.execute(
-            text('SELECT user_id, meaning FROM TuVung WHERE user_id IN :word_ids'),
+            text('SELECT word_id, meaning FROM Vocabulary WHERE word_id IN :word_ids'),
             {"word_ids": tuple(word_ids)}
         ).fetchall()
         print("Correct Answers from DB:", correct_answers)  # Debug print
 
-        correct_answers_dict = {str(row.user_id): row.meaning for row in correct_answers}
+        correct_answers_dict = {row.word_id: row.meaning for row in correct_answers}
         print("Correct Answers Dict:", correct_answers_dict)  # Debug print
 
         # Check user answers
         user_correct_answers = {}
         for item in data:
-            word_id = item['user_id']
+            word_id = item['word_id']
             user_answer = item['meaning']
-            correct_answer = correct_answers_dict.get(str(word_id))
+            correct_answer = correct_answers_dict.get(word_id)
 
             if user_answer == correct_answer:
                 user_correct_answers[word_id] = user_answer
