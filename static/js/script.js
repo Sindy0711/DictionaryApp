@@ -49,7 +49,11 @@ document.addEventListener("DOMContentLoaded", () => {
         word_id: button.getAttribute("data-word_id"),
       };
 
-      if (selectedWords.some(selectedWord => selectedWord.word_id === word.word_id)) {
+      if (
+        selectedWords.some(
+          (selectedWord) => selectedWord.word_id === word.word_id
+        )
+      ) {
         alert("This word is already selected.");
         return;
       }
@@ -62,39 +66,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   });
-
-  // Handle form submission for saving words to an existing page
-  selectPageForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const existingPageId = document.getElementById("existing-page").value;
-
-    if (!existingPageId) {
-      alert("Please select a page to save vocabulary.");
-      return;
-    }
-
-    try {
-      const response = await fetch("/save_words_to_existing_page", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          existing_page_id: existingPageId,
-          words: selectedWords,
-        }),
-      });
-      const data = await response.json();
-      if (data.status === "success") {
-        alert("Words saved successfully!");
-        window.location.reload();
-      } else {
-        alert(`Error: ${data.message}`);
-      }
-    } catch (error) {
-      console.error("Error when saving words:", error);
-      alert("An error occurred while saving the words. Please try again.");
-    }
-  });
-
   // Handle form submission for creating a new page
   createPageForm.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -131,6 +102,37 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (error) {
       console.error("Error creating page:", error);
       alert("An error occurred while creating the page. Please try again.");
+    }
+  });
+  // Handle form submission for saving words to an existing page
+  selectPageForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const existingPageId = document.getElementById("existing-page").value;
+
+    if (!existingPageId) {
+      alert("Please select a page to save vocabulary.");
+      return;
+    }
+
+    try {
+      const response = await fetch("/save_words_to_existing_page", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          existing_page_id: existingPageId,
+          words: selectedWords,
+        }),
+      });
+      const data = await response.json();
+      if (data.status === "success") {
+        alert("Words saved successfully!");
+        window.location.reload();
+      } else {
+        alert(`Error: ${data.message}`);
+      }
+    } catch (error) {
+      console.error("Error when saving words:", error);
+      alert("An error occurred while saving the words. Please try again.");
     }
   });
 

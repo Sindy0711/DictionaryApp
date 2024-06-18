@@ -57,11 +57,12 @@ def get_random_question():
     with engine.connect() as db:
         question = db.execute(text("SELECT * FROM Vocabulary ORDER BY RANDOM() LIMIT 1")).fetchone()
         return question
+    
 def process_multiple_choice(user_choice, correct_answer, start_time):
     end_time = datetime.now()
     if user_choice == correct_answer:
         if (end_time - start_time).total_seconds() <= 5:
-            session['score'] += 1
+            session['score'] += 0.72
         else:
             session['score'] += 0.12
         flash(f"Correct!", "success")
@@ -106,21 +107,17 @@ def register():
             if not field:
                 return render_template("register.html", message="All fields must be filled in") 
         
-         # Kiểm tra xem mật khẩu có hợp lệ không    
         password_error = validate_password(password1)
         if password_error:
             return render_template("register.html", message=password_error)
 
-        # Kiểm tra đồng bộ
         if password1 != password2:
             return render_template("register.html", message="Password mismatch")
 
         existing_user = db.execute(text("SELECT * FROM Users WHERE email = :email"), {"email": email}).fetchone()
         if existing_user:
             return render_template("register.html", message="Email used")
-        # end validation
         else:
-
             try:
                 db.execute(text("INSERT INTO Users(username, full_name, email, password) VALUES (:username, :full_name, :email, :password)"),
                            {"username": username, "full_name": full_name, "email": email, "password": generate_password_hash(password1)})
@@ -130,7 +127,6 @@ def register():
             db.commit()
 
             Q = db.execute(text("SELECT * FROM Users WHERE email LIKE :email AND full_name LIKE :full_name"), {"email": email , "full_name": full_name }).fetchone()
-            print(Q.user_id)
 
             session["user_id"] = Q.user_id
             session["full_name"] = Q.full_name
@@ -256,7 +252,6 @@ def create_vocabulary_page():
 def save_page():
     user_id = session.get("user_id")
     if request.method == 'POST':
-        # Handle the form submission
         selected_words = request.form.getlist('selected_words')
         page_name = request.form.get('page_name')
         existing_page_id = request.form.get('existing_page_id')
@@ -378,8 +373,6 @@ def saved_words():
                 if word_count + len(selected_words) > 10:
                     flash("The page already has too many words. Please create a new page.")
                     return redirect(url_for('search'))
-
-                # Chèn các từ đã chọn vào bảng PageWords
                 insert_query = text('INSERT INTO PageWords (page_id, word, pronunciation, meaning) VALUES (:page_id, :word, :pronunciation, :meaning)')
                 for word in selected_words:
                     db.execute(
@@ -449,6 +442,7 @@ def view_page(page_id):
         logging.exception("Error viewing page")
         return render_template("error.html", message=str(e))
 
+# FLASHCARD 
     
 @app.route('/flashcard', methods=['GET'])
 def flashcard():
@@ -477,14 +471,10 @@ def quiz():
 
     if request.method == 'POST':
         quiz_type = request.form.get('quiz_type')
-        if quiz_type in ['fill_in_the_blanks', 'word_to_meaning', 'meaning_to_word']:
+        if quiz_type in ['fill_in_the_blanks', 'word_to_meaning', 'meaning_to_word' , 'flashcard']:
             return redirect(url_for(quiz_type))
 
     return render_template('quiz.html')
-
-@app.route('/multiple_choice', methods=['GET', 'POST'])
-def multiple_choice():
-    return quiz_route('meaning', 'word')
 
 
 @app.route('/word_to_meaning', methods=['GET', 'POST'])
@@ -511,7 +501,7 @@ def quiz_route(question_col, answer_col):
     session['start_time'] = datetime.now()
     question = get_random_question()
     if question is None:
-        return render_template("error.html", message="Không tìm thấy từ vựng nào")
+        return render_template("error.html", message="No vocabulary found")
 
     question_text = getattr(question, question_col)
     correct_answer = getattr(question, answer_col)
@@ -520,17 +510,6 @@ def quiz_route(question_col, answer_col):
     choices.append(correct_answer)
 
     return render_question(question_text, correct_answer, choices)
-
-@app.route('/next', methods=['POST'])
-def next_question():
-    session['question_number'] += 1
-    return redirect(url_for('multiple_choice'))
-
-@app.route('/restart_quiz')
-def restart_quiz():
-    session['score'] = 0
-    session['question_number'] = 0
-    return redirect(url_for('quiz'))
 
 @app.route('/fill_in_the_blanks', methods=['GET', 'POST'])
 def fill_in_the_blanks():
@@ -562,6 +541,17 @@ def fill_in_the_blanks():
     correct_word = question.word
 
     return render_template('fill_in_the_blanks.html', meaning=meaning, correct_word=correct_word, question_number=session['question_number'])
+
+@app.route('/next', methods=['POST'])
+def next_question():
+    session['question_number'] += 1
+    return redirect(url_for('multiple_choice'))
+
+@app.route('/restart_quiz')
+def restart_quiz():
+    session['score'] = 0
+    session['question_number'] = 0
+    return redirect(url_for('quiz'))
 
 @app.route('/view_session', methods=['GET'])
 def view_session():
@@ -636,7 +626,7 @@ def check_matching_answers():
         logging.exception("Error checking answers")
         return jsonify({"status": "error", "message": str(e)})
 
-from sqlalchemy.sql import text
+
 
 @app.route('/update_points_matching_game', methods=['POST'])
 @login_required  # Yêu cầu người dùng đăng nhập
@@ -646,7 +636,6 @@ def update_points_matching_game():
     ma_trang = data.get('ma_trang')
 
     try:
-        # Lấy thông tin từ request JSON
         points_per_correct = data.get('points_per_correct')
         correct_answers = data.get('correct_answers')
         page_id = data.get('page_id')
@@ -654,17 +643,13 @@ def update_points_matching_game():
         if not points_per_correct or not correct_answers or not page_id:
             raise ValueError("Missing required fields in JSON data")
 
-        # Lấy danh sách word_ids từ correct_answers
         word_ids = list(correct_answers.keys())
-
-
         word_ids = [int(word_id) for word_id in word_ids if str(word_id).isdigit()]
         logging.debug(f"Validated Word IDs: {word_ids}")
 
         if not word_ids:
             raise ValueError("Invalid word_ids: All word_ids must be integers.")
 
-        # Truy vấn điểm hiện tại từ cơ sở dữ liệu
         query = LearningProgress.query.filter(
             LearningProgress.page_id == page_id,
             LearningProgress.word_id.in_(word_ids),
@@ -682,7 +667,6 @@ def update_points_matching_game():
                 {"ma_trang": ma_trang, "word_id": word_id, "user_id": user_id}
             ).fetchone()
 
-            # Thực hiện cập nhật vào cơ sở dữ liệu
             row.score = new_points
             row.last_study_date = datetime.utcnow()
             db.session.commit()
