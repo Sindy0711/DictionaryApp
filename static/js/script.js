@@ -7,7 +7,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const createPageForm = document.getElementById("create-page-form");
   const createPageBtn = document.getElementById("create-page-btn");
 
-  // Function to load vocabulary pages
   async function loadVocabularyPages() {
     try {
       const response = await fetch("/api/get_vocabulary_pages");
@@ -38,7 +37,6 @@ document.addEventListener("DOMContentLoaded", () => {
     selectPageForm.style.display = selectedWords.length > 0 ? "block" : "none";
   }
 
-  // Add event listeners to word selection buttons
   document.querySelectorAll(".btn-select").forEach((button) => {
     button.addEventListener("click", () => {
       const word = {
@@ -135,13 +133,21 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Toggle the visibility of the create page form
-  createPageBtn.addEventListener("click", () => {
-    createPageForm.style.display =
-      createPageForm.style.display === "none" ? "block" : "none";
-  });
+  // createPageBtn.addEventListener("click", () => {
+  //   createPageForm.style.display =
+  //     createPageForm.style.display === "none" ? "block" : "none";
+  // });
 
-  // Load vocabulary pages on page load
+  document
+    .getElementById("create-page-btn")
+    .addEventListener("click", function () {
+      var form = document.getElementById("create-page-form");
+      if (form.style.display === "none") {
+        form.style.display = "block";
+      } else {
+        form.style.display = "none";
+      }
+    });
+
   loadVocabularyPages();
 });
-

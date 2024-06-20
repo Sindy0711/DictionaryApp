@@ -28,37 +28,16 @@ CREATE TABLE VocabularyPage (
     FOREIGN KEY (user_id) REFERENCES Users(user_id)
 );
 
--- Bảng CauHoi
-CREATE TABLE Questions (
-    question_id SERIAL PRIMARY KEY,
-    question_text TEXT NOT NULL,
-    choice_a TEXT NOT NULL,
-    choice_b TEXT NOT NULL,
-    choice_c TEXT NOT NULL,
-    choice_d TEXT NOT NULL,
-    correct_answer TEXT NOT NULL,
-    page_id INT,
-    FOREIGN KEY (page_id) REFERENCES VocabularyPage(page_id)
-);
-
 -- Bảng LearningProgress
 CREATE TABLE LearningProgress (
     page_id INT,
-    user_id INT,
     word_id INT,
     score INT NOT NULL,
     study_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_study_date TIMESTAMP,
-    PRIMARY KEY (page_id, user_id, word_id),
+    PRIMARY KEY (page_id, word_id),
     FOREIGN KEY (user_id) REFERENCES Users(user_id),
     FOREIGN KEY (word_id) REFERENCES Vocabulary(word_id),
     FOREIGN KEY (page_id) REFERENCES VocabularyPage(page_id)
 );
 
-CREATE TABLE PageWords (
-    page_id INT REFERENCES VocabularyPage(page_id),
-    word_id INT REFERENCES Vocabulary(word_id),
-    word VARCHAR(255),
-    pronunciation VARCHAR(255),
-    meaning TEXT
-);

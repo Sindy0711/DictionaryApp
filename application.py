@@ -54,21 +54,39 @@ def validate_password(password):
     return None
 
 def get_random_question():
-    with engine.connect() as db:
-        question = db.execute(text("SELECT * FROM Vocabulary ORDER BY RANDOM() LIMIT 1")).fetchone()
-        return question
+    try:
+        with engine.connect() as db:
+            question = get_random_question()
+            if not question:
+                raise Exception("No random question found")  # Ném ngoại lệ nếu không có câu hỏi nào được tìm thấy
+            return question
+    except Exception as e:
+        print(f"Error in get_random_question: {e}")
+        return None
     
-def process_multiple_choice(user_choice, correct_answer, start_time):
+def process_multiple_choice(user_choice, correct_answer, start_time, session):
     end_time = datetime.now()
+    time_diff = (end_time - start_time).total_seconds()
+    
     if user_choice == correct_answer:
-        if (end_time - start_time).total_seconds() <= 5:
+        if time_diff <= 5:
             session['score'] += 0.72
         else:
             session['score'] += 0.12
-        flash(f"Correct!", "success")
+        flash(f"Correct! You earned +{session['score'], 2} points.", "success")
     else:
         flash(f"Incorrect. The correct answer is: {correct_answer}", "danger")
+    
     session['question_number'] += 1
+    
+    # # Logging the result
+    # if user_choice == correct_answer:
+    #     result = "Correct"
+    # else:
+    #     result = f"Incorrect. Correct answer: {correct_answer}"
+    
+    # print(f"Question {session['question_number']}: {result}. Time taken: {time_diff} seconds")
+
 
 def get_random_choices(correct_answer,column):
     with engine.connect() as db:
@@ -312,9 +330,6 @@ def et_vocabulary_pages():
         logging.exception("Error fetching vocabulary pages")
         return jsonify({"status": "error", "message": str(e)})
 
-
-
-
 @app.route('/save_words_to_existing_page', methods=['POST'])
 def save_words_to_existing_page():
     try:
@@ -447,16 +462,17 @@ def view_page(page_id):
 @app.route('/flashcard', methods=['GET'])
 def flashcard():
     try:    
-        # if 'email' in session:
-        #     flashcard = db.execute(text('''
-        #         SELECT LearningProgress.*, Vocabulary.pronunciation, Vocabulary.meaning 
-        #         FROM LearningProgress 
-        #         JOIN Vocabulary ON LearningProgress.word_id = Vocabulary.word_id 
-        #         ORDER BY RANDOM() 
-        #         LIMIT 1
-        #     ''')).fetchone()
-        # else:
-        flashcard = db.execute(text("SELECT * FROM Vocabulary ORDER BY RANDOM() LIMIT 1")).fetchone()
+        flashcard = db.execute(text('''
+            SELECT LearningProgress.*, Vocabulary.pronunciation, Vocabulary.meaning 
+            FROM LearningProgress 
+            JOIN Vocabulary ON LearningProgress.word_id = Vocabulary.word_id 
+            JOIN VocabularyPage ON LearningProgress.page_id = VocabularyPage.page_id 
+            WHERE VocabularyPage.user_id = :user_id
+            AND VocabularyPage.page_id = :page_id;
+            ORDER BY RANDOM() 
+            LIMIT 1
+        '''), {"user_id": user_id}).fetchone()
+
     except Exception as e:
         return render_template("error.html", message=str(e))
 
