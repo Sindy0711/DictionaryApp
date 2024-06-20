@@ -4,8 +4,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const saveWordsBtn = document.getElementById("save-words-btn");
   const selectPageForm = document.getElementById("select-page-form");
   const existingPageSelect = document.getElementById("existing-page");
-  const createPageForm = document.getElementById("create-page-form");
+
   const createPageBtn = document.getElementById("create-page-btn");
+  const createPageForm = document.getElementById("create-page-form");
+  
 
   // Function to load vocabulary pages
   async function loadVocabularyPages() {
@@ -26,6 +28,8 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("Error loading vocabulary pages:", error);
     }
   }
+
+  loadVocabularyPages(); // Gọi hàm loadVocabularyPages() sau khi DOM được tải
 
   function renderSelectedWords() {
     selectedWordsContainer.innerHTML = "";
@@ -48,11 +52,7 @@ document.addEventListener("DOMContentLoaded", () => {
         word_id: button.getAttribute("data-word_id"),
       };
 
-      if (
-        selectedWords.some(
-          (selectedWord) => selectedWord.word_id === word.word_id
-        )
-      ) {
+      if (selectedWords.some((selectedWord) => selectedWord.word_id === word.word_id)) {
         alert("This word is already selected.");
         return;
       }
@@ -66,13 +66,13 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  
+  // Function to handle form submission to create a vocabulary page
   createPageForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
     const pageName = document.getElementById("page-name").value.trim();
-    const pageDescription = document
-      .getElementById("page-description")
-      .value.trim();
+    const pageDescription = document.getElementById("page-description").value.trim();
 
     if (!pageName) {
       alert("Page name is required");
@@ -104,10 +104,19 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  // Toggle the visibility of the create page form
+  createPageBtn.addEventListener("click", () => {
+    if (createPageForm.style.display === "none" || createPageForm.style.display === "") {
+      createPageForm.style.display = "block";
+    } else {
+      createPageForm.style.display = "none";
+    }
+  });
+
+  // Handle form submission to save to an existing vocabulary page
   selectPageForm.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const existingPageId = document.getElementById("existing-page").value;
-
+    const existingPageId = existingPageSelect.value;
     if (!existingPageId) {
       alert("Please select a page to save vocabulary.");
       return;
@@ -135,13 +144,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Toggle the visibility of the create page form
-  createPageBtn.addEventListener("click", () => {
-    createPageForm.style.display =
-      createPageForm.style.display === "none" ? "block" : "none";
-  });
-
+  
   // Load vocabulary pages on page load
   loadVocabularyPages();
 });
-
