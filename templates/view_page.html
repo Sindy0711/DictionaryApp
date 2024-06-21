@@ -13,14 +13,60 @@
                     <div class="cell">Word</div>
                     <div class="cell">Pronunciation</div>
                     <div class="cell">Means</div>
-                    <div class="cell">Score</div>
+                    <div class="cell">Progress</div>
                 </div>
                 {% for word in words %}
                 <div class="row">
                     <div class="cell">{{ word.word }}</div>
                     <div class="cell">{{ word.pronunciation }}</div>
                     <div class="cell">{{ word.meaning }}</div>
-                    <div class="cell">{{ word.score }}</div>
+                    <div class="cell">
+                        <canvas id="scoreChart-{{ loop.index }}" width="100" height="100"></canvas>
+                        <script>
+                            document.addEventListener('DOMContentLoaded', function() {
+                                var ctx = document.getElementById('scoreChart-{{ loop.index }}').getContext('2d');
+                                var chart = new Chart(ctx, {
+                                    type: 'doughnut',
+                                    data: {
+                                        datasets: [{
+                                            data: [{{ word.percentage }}, 100 - {{ word.percentage }}],
+                                            backgroundColor: ['#4CAF50', '#e0e0e0'],
+                                            borderWidth: 1
+                                        }]
+                                    },
+                                    options: {
+                                        responsive: false,
+                                        cutout: '75%',  // Increased cutout percentage to provide more inner space
+                                        plugins: {
+                                            tooltip: {
+                                                enabled: false
+                                            },
+                                            legend: {
+                                                display: false
+                                            }
+                                        }
+                                    },
+                                    plugins: [{
+                                        beforeDraw: function(chart) {
+                                            var width = chart.width,
+                                                height = chart.height,
+                                                ctx = chart.ctx;
+                                            ctx.restore();
+                                            var fontSize = (height / 100).toFixed(2); // Adjusted divisor to scale the font size smaller
+                                            ctx.font = fontSize + "em sans-serif";
+                                            ctx.textBaseline = "middle";
+                                            var text = "{{ '%.2f' % word.percentage }}%",
+                                                textX = Math.round((width - ctx.measureText(text).width) / 2),
+                                                textY = height / 2;
+                                            ctx.clearRect(0, 0, width, height); // Clear canvas before drawing
+                                            ctx.fillText(text, textX, textY);
+                                            ctx.save();
+                                        }
+                                    }]
+                                });
+                            });
+                        </script>
+                    </div>
                 </div>
                 {% endfor %}
             </div>
@@ -32,7 +78,7 @@
             <button type="button" class="btn btn-warning" onclick="location.href='{{ url_for('recommend', page_id=page.page_id) }}'">Recommend</button>
             <a href="{{ url_for('VocabularyPage') }}" class="btn btn-primary">Back to Pages</a>
         </div>
-        
     </div>
 </div>
+
 {% endblock %}

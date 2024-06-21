@@ -121,6 +121,8 @@
             let draggedItem = null;
             let timeLeft = 60;
             const timerElement = document.getElementById('timer');
+            const pageId = "{{ page_id }}"; // Lấy page_id từ template
+        
             const timerInterval = setInterval(() => {
                 timeLeft--;
                 timerElement.textContent = `Time left: ${timeLeft}s`;
@@ -187,7 +189,7 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(results)
+                    body: JSON.stringify({ results, page_id: pageId })
                 })
                 .then(response => response.json())
                 .then(data => {

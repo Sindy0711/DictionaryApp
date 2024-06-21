@@ -512,7 +512,10 @@ def save_suggestions(page_id):
 def view_page(page_id):
     user_id = session.get("user_id")
     try:
-        page = db.execute( text('SELECT * FROM VocabularyPage WHERE page_id = :page_id AND user_id = :user_id'),{"page_id": page_id, "user_id": user_id}).mappings().fetchone()
+        page = db.execute(
+            text('SELECT * FROM VocabularyPage WHERE page_id = :page_id AND user_id = :user_id'),
+            {"page_id": page_id, "user_id": user_id}
+        ).mappings().fetchone()
         
         if not page:
             flash("Page not found.")
@@ -529,14 +532,27 @@ def view_page(page_id):
             flash("No words found for this page.")
             return render_template('view_page.html', page=page, words=[])
 
-        # Fetch the words using .mappings().fetchall() to get dictionary-like results
-        words = db.execute( text('SELECT * FROM Vocabulary WHERE word_id IN :word_ids'), {"word_ids": tuple(word_ids)}).mappings().fetchall()
+        # Fetch the words with score
+        words = db.execute(
+            text('''
+                SELECT v.word, v.pronunciation, v.meaning, lp.score
+                FROM Vocabulary v
+                JOIN LearningProgress lp ON v.word_id = lp.word_id
+                WHERE v.word_id IN :word_ids AND lp.page_id = :page_id
+            '''),
+            {"word_ids": tuple(word_ids), "page_id": page_id}
+        ).mappings().all()
 
+        # Convert RowMapping to dictionary and calculate percentages
+        words = [dict(word) for word in words]
+        for word in words:
+            word['percentage'] = min((word['score'] / 100) * 100, 100)
+        
         return render_template('view_page.html', page=page, words=words)
     except Exception as e:
         logging.exception("Error viewing page")
         return render_template("error.html", message=str(e))
-
+    
 # FLASHCARD 
     
 @app.route('/flashcard', methods=['GET'])
@@ -664,13 +680,13 @@ def matching_game():
 
     if not page_id:
         flash("Page ID is required.")
-        return redirect(url_for('page'))
+        return redirect(url_for('VocabularyPage'))
 
     try:
         words = db.execute(
-        text('SELECT * FROM Vocabulary WHERE word_id IN (SELECT word_id FROM LearningProgress WHERE page_id = :page_id AND user_id = :user_id) ORDER BY RANDOM() LIMIT 5'),
-        {"page_id": page_id, "user_id": user_id}
-    ).fetchall()
+            text('SELECT * FROM Vocabulary WHERE word_id IN (SELECT word_id FROM LearningProgress WHERE page_id = :page_id AND user_id = :user_id) ORDER BY RANDOM() LIMIT 5'),
+            {"page_id": page_id, "user_id": user_id}
+        ).fetchall()
 
         if not words:
             flash("No words found in the selected vocabulary page. Please add words before playing the game.")
@@ -679,43 +695,39 @@ def matching_game():
         meanings = [word.meaning for word in words]
         random.shuffle(meanings)
 
-        return render_template('matching_game.html', words=words, meanings=meanings)
+        return render_template('matching_game.html', words=words, meanings=meanings, page_id=page_id)
     except Exception as e:
         logging.exception("Error fetching words for matching game")
         flash("An error occurred while fetching words for the matching game. Please try again.")
         return redirect(url_for('VocabularyPage'))
 
+
 @app.route('/check_matching_answers', methods=['POST'])
 @login_required
 def check_matching_answers():
-    data = request.get_json()
-    user_id = session.get('user_id')
-
     try:
-        print("Incoming Data:", data)  # Debug print
-        word_ids = [item['word_id'] for item in data]
-        print("Extracted Word IDs:", word_ids)  # Debug print
+        data = request.get_json()
+        if not data:
+            raise ValueError("No data provided or invalid JSON format.")
 
-        # Validate word_ids to ensure they are all integers
-        word_ids = [int(word_id) for word_id in word_ids if word_id is not None and isinstance(word_id, int)]
-        print("Validated Word IDs:", word_ids)  # Debug print
+        results = data.get('results', [])
+        page_id = data.get('page_id')
 
-        if not word_ids:
-            raise ValueError("Invalid word_ids: All word_ids must be integers.")
+        if not results or not page_id:
+            raise ValueError("Missing results or page_id in the request data.")
 
-        # Fetch correct answers from database
+        user_id = session.get('user_id')
+        word_ids = [item['word_id'] for item in results]
+
         correct_answers = db.execute(
             text('SELECT word_id, meaning FROM Vocabulary WHERE word_id IN :word_ids'),
             {"word_ids": tuple(word_ids)}
         ).fetchall()
-        print("Correct Answers from DB:", correct_answers)  # Debug print
 
         correct_answers_dict = {row.word_id: row.meaning for row in correct_answers}
-        print("Correct Answers Dict:", correct_answers_dict)  # Debug print
 
-        # Check user answers
         user_correct_answers = {}
-        for item in data:
+        for item in results:
             word_id = item['word_id']
             user_answer = item['meaning']
             correct_answer = correct_answers_dict.get(word_id)
@@ -723,14 +735,12 @@ def check_matching_answers():
             if user_answer == correct_answer:
                 user_correct_answers[word_id] = user_answer
 
-        print("User Correct Answers:", user_correct_answers)  # Debug print
-
-        return jsonify({"status": "success", "correct_answers": user_correct_answers, "message": "Answers have been checked successfully."})
+        return jsonify({"status": "success", "correct_answers": user_correct_answers, "message": "Answers have been checked successfully.", "page_id": page_id})
     except Exception as e:
         logging.exception("Error checking answers")
         return jsonify({"status": "error", "message": str(e)})
 
-
+    
 @app.route('/update_points_matching_game', methods=['POST'])
 @login_required
 def update_points_matching_game():
