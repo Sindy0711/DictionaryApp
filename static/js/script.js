@@ -103,6 +103,43 @@ document.addEventListener("DOMContentLoaded", () => {
       alert("An error occurred while creating the page. Please try again.");
     }
   });
+  // Đảm bảo hàm deletePage được định nghĩa trong phạm vi này
+  async function deletePage(pageId) {
+    if (confirm("Are you sure you want to delete this page?")) {
+      try {
+        const response = await fetch(`/delete_vocabulary_page/${pageId}`, {
+          method: "DELETE", // Ensure DELETE method is used if appropriate
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+  
+        if (!response.ok) {
+          throw new Error(`Failed to delete page. Status: ${response.status}`);
+        }
+  
+        const data = await response.json();
+        if (data.status === "success") {
+          alert("Page deleted successfully!");
+          window.location.reload();
+        } else {
+          alert(`Error: ${data.message}`);
+        }
+      } catch (error) {
+        console.error("Error deleting page:", error);
+        alert("An unexpected error occurred while deleting the page. Please try again.");
+      }
+    }
+  }
+// Xác định các sự kiện và logic khác ở đây
+
+// Add event listeners for delete buttons
+document.querySelectorAll(".btn-danger").forEach((button) => {
+  button.addEventListener("click", () => {
+    const pageId = button.getAttribute("data-page-id");
+    deletePage(pageId); // Đảm bảo rằng hàm deletePage được gọi khi nút được nhấp
+  });
+});
 
   // Toggle the visibility of the create page form
   createPageBtn.addEventListener("click", () => {
@@ -121,7 +158,9 @@ document.addEventListener("DOMContentLoaded", () => {
       alert("Please select a page to save vocabulary.");
       return;
     }
-
+  
+    console.log('Selected Words:', selectedWords);
+  
     try {
       const response = await fetch("/save_words_to_existing_page", {
         method: "POST",
@@ -131,7 +170,10 @@ document.addEventListener("DOMContentLoaded", () => {
           words: selectedWords,
         }),
       });
+  
       const data = await response.json();
+      console.log('Response Data:', data);
+  
       if (data.status === "success") {
         alert("Words saved successfully!");
         window.location.reload();
@@ -144,7 +186,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  
+
+
   // Load vocabulary pages on page load
   loadVocabularyPages();
 });

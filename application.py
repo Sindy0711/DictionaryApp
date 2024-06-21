@@ -247,6 +247,23 @@ def create_vocabulary_page():
         logging.exception("Error creating vocabulary page")
         return jsonify({"status": "error", "message": str(e)})
     
+@app.route('/delete_vocabulary_page/<int:page_id>', methods=['DELETE'])
+@login_required
+def delete_vocabulary_page(page_id):
+    try:
+        user_id = session.get("user_id")
+        logging.info(f"Deleting page_id: {page_id} for user_id: {user_id}")
+        with engine.connect() as db:
+            db.execute(text('DELETE FROM LearningProgress WHERE page_id = :page_id AND user_id = :user_id'), {"page_id": page_id, "user_id": user_id})
+            logging.info(f"Deleted from LearningProgress")
+            db.execute(text('DELETE FROM VocabularyPage WHERE page_id = :page_id AND user_id = :user_id'), {"page_id": page_id, "user_id": user_id})
+            logging.info(f"Deleted from VocabularyPage")
+            db.commit()
+        return jsonify({"status": "success"})
+    except Exception as e:
+        logging.exception("Error deleting vocabulary page")
+        return jsonify({"status": "error", "message": str(e)})
+    
 @app.route('/save_page', methods=['GET', 'POST'])
 @login_required
 def save_page():
@@ -316,29 +333,40 @@ def et_vocabulary_pages():
 
 
 @app.route('/save_words_to_existing_page', methods=['POST'])
+@login_required
 def save_words_to_existing_page():
     try:
-        data = request.json
+        data = request.get_json()
         existing_page_id = data.get('existing_page_id')
-        selected_words = data.get('words', [])
+        words = data.get('words')
 
-        if not existing_page_id:
-            return jsonify({"status": "error", "message": "Existing page ID is required"})
+        if not existing_page_id or not words:
+            return jsonify({"status": "error", "message": "Invalid data"}), 400
+
+        user_id = session.get("user_id")
 
         with engine.connect() as db:
-            word_count = db.execute(text('SELECT COUNT(*) FROM LearningProgress WHERE page_id = :page_id'), {"page_id": existing_page_id}).scalar()
-            if word_count + len(selected_words) > 10:
-                return jsonify({"status": "error", "message": "The page already has too many words. Please create a new page."})
+            word_count = db.execute(
+                text('SELECT COUNT(*) FROM PageWords WHERE page_id = :page_id'),
+                {"page_id": existing_page_id}
+            ).scalar()
 
-            for word in selected_words:
-                db.execute(text('INSERT INTO LearningProgress (page_id, user_id, word_id, score) VALUES (:page_id, :user_id, :word_id, 0)'),
-                                   {"page_id": existing_page_id, "user_id": 1, "word_id": word['word_id']})
+            if word_count + len(words) > 10:
+                return jsonify({"status": "error", "message": "The page already has too many words. Please create a new page."}), 400
+
+            insert_query = text('INSERT INTO PageWords (page_id, word, pronunciation, meaning) VALUES (:page_id, :word, :pronunciation, :meaning)')
+            for word in words:
+                db.execute(
+                    insert_query,
+                    {"page_id": existing_page_id, "word": word['word'], "pronunciation": word['pronunciation'], "meaning": word['meaning']}
+                )
             db.commit()
 
-        return jsonify({"status": "success"})
+        return jsonify({"status": "success", "message": "Words saved successfully!"})
+    
     except Exception as e:
-        logging.exception("Error saving words to existing page")
-        return jsonify({"status": "error", "message": str(e)})
+        logging.exception("Error while saving word")
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 
 @app.route('/saved_words', methods=['GET', 'POST'])
