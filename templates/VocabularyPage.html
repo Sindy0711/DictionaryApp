@@ -3,53 +3,53 @@
 {% block title %}Vocabulary Page{% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="row">
-        <div class="col">
-            <h1 class="my-4">My vocabulary page</h1>
+<div class="vocab-container">
+    <div class="vocab-row">
+        <div class="vocab-col">
+            <h1 class="vocab-my-4">My vocabulary page</h1>
         </div>
     </div>
-    <div class="row">
-        <div class="col">
-            <h2 class="my-4">List of vocabulary pages</h2>
+    <div class="vocab-row">
+        <div class="vocab-col">
+            <h2 class="vocab-my-4">List of vocabulary pages</h2>
             <ul id="pages-list">
                 {% for page in pages %}
-                <li class="mb-3">
-                    <p><strong>Page name:</strong> {{ page. page_name}}</p>
+                <li class="vocab-mb-3">
+                    <p><strong>Page name:</strong> {{ page.page_name }}</p>
                     <p><strong>Describe:</strong> {{ page.description or "Không có mô tả" }}</p>
-                    <a href="{{ url_for('view_page', page_id=page. page_id) }}" class="btn btn-info mt-2">See vocabulary</a>
-                    <a href="{{ url_for('matching_game', page_id=page. page_id) }}" class="btn btn-secondary mt-2">Play word matching game</a>
+                    <a href="{{ url_for('view_page', page_id=page.page_id) }}" class="vocab-btn vocab-btn-info vocab-mt-2">See vocabulary</a>
+                    <button type="button" class="vocab-btn vocab-btn-warning vocab-mt-2" onclick="location.href='{{ url_for('recommend', page_id=page.page_id) }}'">Recommend</button>
+                    <a href="{{ url_for('matching_game', page_id=page.page_id) }}" class="vocab-btn vocab-btn-secondary vocab-mt-2">Play word matching game</a>
                 </li>
                 {% endfor %}
             </ul>
         </div>
     </div>
-    <div class="row">
-        <div class="col">
-            <div class="float-right">
-                <div class="float-right">
-                    <a href="{{ url_for('saved_words') }}" class="btn btn-success mt-2 mr-2">Add vocabulary to the page</a>
-                    <button type="button" class="btn btn-primary mt-2" id="create-page-btn">Create a new page</button>
+    <div class="vocab-row">
+        <div class="vocab-col">
+            <div class="vocab-float-right">
+                <div class="vocab-float-right">
+                    <a href="{{ url_for('saved_words') }}" class="vocab-btn vocab-btn-success vocab-mt-2 vocab-mr-2">Add vocabulary to the page</a>
+                    <button type="button" class="vocab-btn vocab-btn-primary vocab-mt-2" id="create-page-btn">Create a new page</button>
                 </div>
             </div>
         </div>
     </div>
-    <div class="row">
-        <div class="col">
+    <div class="vocab-row">
+        <div class="vocab-col">
             <form id="create-page-form" action="{{ url_for('create_vocabulary_page') }}" method="post" style="display: none;">
-                <div class="form-group">
+                <div class="vocab-form-group">
                     <label for="page-name">Page name</label>
-                    <input type="text" class="form-control" id="page-name" name="page_name" required>
+                    <input type="text" class="vocab-form-control" id="page-name" name="page_name" required>
                 </div>
-                <div class="form-group">
+                <div class="vocab-form-group">
                     <label for="page-description">Description</label>
-                    <textarea class="form-control" id="page-description" name="page_description"></textarea>
+                    <textarea class="vocab-form-control" id="page-description" name="page_description"></textarea>
                 </div>
-                <button type="submit" class="btn btn-primary">Create a vocabulary page</button>
+                <button type="submit" class="vocab-btn vocab-btn-primary">Create a vocabulary page</button>
             </form>
         </div>
     </div>
 </div>
-    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
 {% endblock %}
-

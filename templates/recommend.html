@@ -1,0 +1,38 @@
+{% extends "layout.html" %}
+
+{% block title %}Recommend Words{% endblock %}
+
+{% block content %}
+<div class="view-page">
+    <div class="container">
+        <div class="content-wrapper">
+            <h2>Recommend Words to {{ page.page_name }}</h2>
+            {% if suggested_words %}
+            <form id="suggest-form" action="{{ url_for('save_suggestions', page_id=page.page_id) }}" method="post">
+                <input type="hidden" name="page_id" value="{{ page.page_id }}">
+                <div class="table">
+                    <div class="row header">
+                        <div class="cell">Word</div>
+                        <div class="cell">Pronunciation</div>
+                        <div class="cell">Means</div>
+                        <div class="cell">Select</div>
+                    </div>
+                    {% for word in suggested_words %}
+                    <div class="row">
+                        <div class="cell">{{ word.word }}</div>
+                        <div class="cell">{{ word.pronunciation }}</div>
+                        <div class="cell">{{ word.meaning }}</div>
+                        <div class="cell"><input type="checkbox" name="selected_words" value="{{ word.word_id }}"></div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <button type="submit" class="btn btn-primary mt-2">Save selected word</button>
+            </form>
+            {% else %}
+            <p>No suggested words found.</p>
+            {% endif %}
+        </div>
+        <a href="{{ url_for('view_page',  page_id=page.page_id) }}" class="btn btn-primary">Back to Pages</a>
+    </div>
+</div>
+{% endblock %}

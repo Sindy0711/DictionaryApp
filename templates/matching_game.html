@@ -213,8 +213,7 @@
                     });
         
                     const pointsPerCorrectAnswer = timeLeft > 30 ? 0.82 : 0.75;
-                    alert(`${data.message} You have earned ${pointsPerCorrectAnswer} points for each correct sentence.`);
-
+                    alert(`${data.message} You have earned ${pointsPerCorrectAnswer} points for each correct answer.`);
         
                     fetch('/update_points_matching_game', {
                         method: 'POST',
@@ -246,7 +245,7 @@
                     alert("An error occurred while checking answers. Please try again.");
                 });
             }
-        });        
+        });
     </script>
 </body>
 </html>
