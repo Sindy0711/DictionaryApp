@@ -261,7 +261,79 @@ def create_vocabulary_page():
     except Exception as e:
         logging.exception("Error creating vocabulary page")
         return jsonify({"status": "error", "message": str(e)})
+
+#xóa trang
+
+@app.route('/delete_vocabulary_page/<int:page_id>', methods=['DELETE'])
+@login_required
+def delete_vocabulary_page(page_id):
+    try:
+        user_id = session.get("user_id")
+        logging.info(f"Deleting page_id: {page_id} for user_id: {user_id}")
+        with engine.connect() as db:
+            db.execute(text('DELETE FROM LearningProgress WHERE page_id = :page_id AND user_id = :user_id'), {"page_id": page_id, "user_id": user_id})
+            logging.info(f"Deleted from LearningProgress")
+            db.execute(text('DELETE FROM VocabularyPage WHERE page_id = :page_id AND user_id = :user_id'), {"page_id": page_id, "user_id": user_id})
+            logging.info(f"Deleted from VocabularyPage")
+            db.commit()
+        return jsonify({"status": "success"})
+    except Exception as e:
+        logging.exception("Error deleting vocabulary page")
+        return jsonify({"status": "error", "message": str(e)})
+
+@app.route('/api/get_vocabulary_pages', methods=['GET'])
+@login_required
+def et_vocabulary_pages():
+    try:
+        user_id = session.get("user_id")
+        with engine.connect() as db:
+            result = db.execute(
+                text('SELECT page_id, page_name FROM VocabularyPage WHERE user_id = :user_id'),
+                {"user_id": user_id}
+            ).fetchall()
+            pages = [{"page_id": row[0], "page_name": row[1]} for row in result] 
+        return jsonify({"status": "success", "pages": pages})
+    except Exception as e:
+        logging.exception("Error fetching vocabulary pages")
+        return jsonify({"status": "error", "message": str(e)})
     
+#lưu từ vào trang
+
+@app.route('/save_words_to_existing_page', methods=['POST'])
+@login_required
+def save_words_to_existing_page():
+    try:
+        data = request.get_json()
+        existing_page_id = data.get('existing_page_id')
+        words = data.get('words')
+
+        if not existing_page_id or not words:
+            return jsonify({"status": "error", "message": "Invalid data"}), 400
+
+        user_id = session.get("user_id")
+
+        with engine.connect() as db:
+            word_count = db.execute(
+                text('SELECT COUNT(*) FROM LearningProgress WHERE page_id = :page_id AND user_id = :user_id'),
+                {"page_id": existing_page_id, "user_id": user_id}
+            ).scalar()
+
+            if word_count + len(words) > 10:
+                return jsonify({"status": "error", "message": "The page already has too many words. Please create a new page."}), 400
+
+            insert_query = text('INSERT INTO LearningProgress (page_id, user_id, word_id, score) VALUES (:page_id, :user_id, :word_id, 0)')
+            for word in words:
+                db.execute(
+                    insert_query,
+                    {"page_id": existing_page_id, "user_id": user_id, "word_id": word['word_id']}
+                )
+            db.commit()
+
+        return jsonify({"status": "success", "message": "Words saved successfully!"})
+    
+    except Exception as e:
+        logging.exception("Error while saving word")
+
 @app.route('/save_page', methods=['GET', 'POST'])
 @login_required
 def save_page():
@@ -285,10 +357,21 @@ def save_page():
                 else:
                     page_id = existing_page_id
 
+                word_count = db.execute(
+                    text('SELECT COUNT(*) FROM LearningProgress WHERE page_id = :page_id AND user_id = :user_id'),
+                    {"page_id": page_id, "user_id": user_id}
+                ).scalar()
+
+                if word_count + len(selected_words) > 10:
+                    flash("The page already has too many words. Please create a new page.")
+                    return redirect(url_for('search'))
+
                 insert_query = text('INSERT INTO LearningProgress (page_id, user_id, word_id, score) VALUES (:page_id, :user_id, :word_id, 0)')
                 for word in selected_words:
-                    db.execute(insert_query, {"page_id": page_id, "user_id": user_id, "word_id": word})
-
+                    db.execute(
+                        insert_query,
+                        {"page_id": page_id, "user_id": user_id, "word_id": word}
+                    )
                 db.commit()
 
             session['selected_words'] = []
@@ -310,48 +393,6 @@ def save_page():
         except Exception as e:
             logging.exception("Error fetching vocabulary pages")
             return render_template("error.html", message=str(e))
-
-@app.route('/api/get_vocabulary_pages', methods=['GET'])
-@login_required
-def et_vocabulary_pages():
-    try:
-        user_id = session.get("user_id")
-        with engine.connect() as db:
-            result = db.execute(
-                text('SELECT page_id, page_name FROM VocabularyPage WHERE user_id = :user_id'),
-                {"user_id": user_id}
-            ).fetchall()
-            pages = [{"page_id": row[0], "page_name": row[1]} for row in result] 
-        return jsonify({"status": "success", "pages": pages})
-    except Exception as e:
-        logging.exception("Error fetching vocabulary pages")
-        return jsonify({"status": "error", "message": str(e)})
-
-@app.route('/save_words_to_existing_page', methods=['POST'])
-def save_words_to_existing_page():
-    try:
-        data = request.json
-        existing_page_id = data.get('existing_page_id')
-        selected_words = data.get('words', [])
-
-        if not existing_page_id:
-            return jsonify({"status": "error", "message": "Existing page ID is required"})
-
-        with engine.connect() as db:
-            word_count = db.execute(text('SELECT COUNT(*) FROM LearningProgress WHERE page_id = :page_id'), {"page_id": existing_page_id}).scalar()
-            if word_count + len(selected_words) > 10:
-                return jsonify({"status": "error", "message": "The page already has too many words. Please create a new page."})
-
-            for word in selected_words:
-                db.execute(text('INSERT INTO LearningProgress (page_id, user_id, word_id, score) VALUES (:page_id, :user_id, :word_id, 0)'),
-                                   {"page_id": existing_page_id, "user_id": 1, "word_id": word['word_id']})
-            db.commit()
-
-        return jsonify({"status": "success"})
-    except Exception as e:
-        logging.exception("Error saving words to existing page")
-        return jsonify({"status": "error", "message": str(e)})
-
 
 @app.route('/saved_words', methods=['GET', 'POST'])
 @login_required
@@ -404,7 +445,51 @@ def saved_words():
     # Xử lý yêu cầu GET
     return render_template('saved_words.html')
 
-    
+
+#xóa từ
+@app.route('/delete_words/<int:page_id>', methods=['GET'])
+@login_required
+def delete_words(page_id):
+    user_id = session.get("user_id")
+    try:
+        with engine.connect() as db:
+            # Truy vấn thông tin các từ trong learningprogress
+            words = db.execute(
+                text('SELECT v.word, v.pronunciation, v.meaning, lp.word_id '
+                     'FROM LearningProgress lp '
+                     'JOIN Vocabulary v ON lp.word_id = v.word_id '
+                     'WHERE lp.page_id = :page_id AND lp.user_id = :user_id'),
+                {"page_id": page_id, "user_id": user_id}
+            ).fetchall()
+        
+        return render_template('delete_words.html', page_id=page_id, words=words)
+    except Exception as e:
+        logging.exception("Error fetching words for deletion")
+        return render_template("error.html", message=str(e))
+
+@app.route('/confirm_delete/<int:page_id>', methods=['POST'])
+@login_required
+def confirm_delete(page_id):
+    user_id = session.get("user_id")
+    selected_words = request.form.getlist('selected_words')
+    if not selected_words:
+        flash("No words selected for deletion.")
+        return redirect(url_for('delete_words', page_id=page_id))
+
+    try:
+        with engine.connect() as db:
+            delete_query = text('DELETE FROM LearningProgress '
+                                'WHERE page_id = :page_id AND user_id = :user_id AND word_id = :word_id')
+            for word_id in selected_words:
+                db.execute(delete_query, {"page_id": page_id, "user_id": user_id, "word_id": word_id})
+            db.commit()
+        flash("Selected words deleted successfully.")
+        return redirect(url_for('view_page', page_id=page_id))
+    except Exception as e:
+        logging.exception("Error deleting words")
+        return render_template("error.html", message=str(e))
+
+
 @app.route('/VocabularyPage')
 @login_required
 def VocabularyPage():
@@ -422,14 +507,110 @@ def VocabularyPage():
     except Exception as e:
         logging.exception("Error fetching vocabulary pages")
         return render_template("error.html", message=str(e))
+    
+#RECOMMAND
+@app.route('/recommend/<int:page_id>', methods=['GET'])
+@login_required
+def recommend(page_id):
+    try:
+        user_id = session.get("user_id")
+        
+        # Step 1: Get the current page's name
+        current_page = db.execute(
+            text('SELECT page_name FROM VocabularyPage WHERE page_id = :page_id AND user_id = :user_id'),
+            {"page_id": page_id, "user_id": user_id}
+        ).fetchone()
 
+        if not current_page:
+            flash("Page not found.")
+            return redirect(url_for('VocabularyPage'))
+
+        page_name = current_page.page_name
+
+        # Step 2: Find other pages with the same name but different user_id
+        similar_pages = db.execute(
+            text('SELECT page_id FROM VocabularyPage WHERE page_name = :page_name AND user_id != :user_id'),
+            {"page_name": page_name, "user_id": user_id}
+        ).fetchall()
+
+        if not similar_pages:
+            flash("No similar pages found.")
+            return redirect(url_for('view_page', page_id=page_id))
+
+        similar_page_ids = [page.page_id for page in similar_pages]
+
+        # Step 3: Get words from these pages
+        word_ids = db.execute(
+            text('SELECT DISTINCT word_id FROM LearningProgress WHERE page_id IN :page_ids'),
+            {"page_ids": tuple(similar_page_ids)}
+        ).fetchall()
+
+        if not word_ids:
+            flash("No words found from similar pages.")
+            return redirect(url_for('view_page', page_id=page_id))
+
+        word_ids = [word.word_id for word in word_ids]
+
+        # Step 4: Fetch word details, excluding words already in the current page
+        current_page_word_ids = db.execute(
+            text('SELECT word_id FROM LearningProgress WHERE page_id = :page_id'),
+            {"page_id": page_id}
+        ).fetchall()
+        
+        current_page_word_ids = [word.word_id for word in current_page_word_ids]
+
+        filtered_word_ids = [word_id for word_id in word_ids if word_id not in current_page_word_ids]
+
+        if not filtered_word_ids:
+            flash("No new words found.")
+            return redirect(url_for('view_page', page_id=page_id))
+
+        # Limit to 10 words
+        filtered_word_ids = filtered_word_ids[:10]
+
+        suggested_words = db.execute(
+            text('SELECT * FROM Vocabulary WHERE word_id IN :word_ids'),
+            {"word_ids": tuple(filtered_word_ids)}
+        ).fetchall()
+
+        return render_template('recommend.html', page={"page_id": page_id, "page_name": page_name}, suggested_words=suggested_words)
+    except Exception as e:
+        logging.exception("Error in recommending words")
+        return render_template("error.html", message=str(e))
+
+@app.route('/save_suggestions/<int:page_id>', methods=['POST'])
+@login_required
+def save_suggestions(page_id):
+    try:
+        user_id = session.get("user_id")
+        selected_words = request.form.getlist('selected_words')
+
+        if not selected_words:
+            flash("No words selected.")
+            return redirect(url_for('recommend', page_id=page_id))
+
+        for word_id in selected_words:
+            db.execute(
+                text('INSERT INTO LearningProgress (page_id, user_id, word_id, score) VALUES (:page_id, :user_id, :word_id, 0)'),
+                {"page_id": page_id, "user_id": user_id, "word_id": word_id}
+            )
+        db.commit()
+
+        flash("Words saved successfully.")
+        return redirect(url_for('view_page', page_id=page_id))
+    except Exception as e:
+        logging.exception("Error saving recommended words")
+        return render_template("error.html", message=str(e))
 
 @app.route('/view_page/<int:page_id>')
 @login_required
 def view_page(page_id):
     user_id = session.get("user_id")
     try:
-        page = db.execute( text('SELECT * FROM VocabularyPage WHERE page_id = :page_id AND user_id = :user_id'),{"page_id": page_id, "user_id": user_id}).mappings().fetchone()
+        page = db.execute(
+            text('SELECT * FROM VocabularyPage WHERE page_id = :page_id AND user_id = :user_id'),
+            {"page_id": page_id, "user_id": user_id}
+        ).mappings().fetchone()
         
         if not page:
             flash("Page not found.")
@@ -446,14 +627,27 @@ def view_page(page_id):
             flash("No words found for this page.")
             return render_template('view_page.html', page=page, words=[])
 
-        # Fetch the words using .mappings().fetchall() to get dictionary-like results
-        words = db.execute( text('SELECT * FROM Vocabulary WHERE word_id IN :word_ids'), {"word_ids": tuple(word_ids)}).mappings().fetchall()
+        # Fetch the words with score
+        words = db.execute(
+            text('''
+                SELECT v.word, v.pronunciation, v.meaning, lp.score
+                FROM Vocabulary v
+                JOIN LearningProgress lp ON v.word_id = lp.word_id
+                WHERE v.word_id IN :word_ids AND lp.page_id = :page_id
+            '''),
+            {"word_ids": tuple(word_ids), "page_id": page_id}
+        ).mappings().all()
 
+        # Convert RowMapping to dictionary and calculate percentages
+        words = [dict(word) for word in words]
+        for word in words:
+            word['percentage'] = min((word['score'] / 100) * 100, 100)
+        
         return render_template('view_page.html', page=page, words=words)
     except Exception as e:
         logging.exception("Error viewing page")
         return render_template("error.html", message=str(e))
-
+    
 # FLASHCARD 
     
 @app.route('/flashcard', methods=['GET'])
@@ -588,13 +782,14 @@ def matching_game():
 
     if not page_id:
         flash("Page ID is required.")
-        return redirect(url_for('page'))
+        return redirect(url_for('VocabularyPage'))
 
     try:
         words = db.execute(
-        text('SELECT * FROM Vocabulary WHERE word_id IN (SELECT word_id FROM LearningProgress WHERE page_id = :page_id AND user_id = :user_id) ORDER BY RANDOM() LIMIT 5'),
-        {"page_id": page_id, "user_id": user_id}
-    ).fetchall()
+            text('SELECT * FROM Vocabulary WHERE word_id IN (SELECT word_id FROM LearningProgress WHERE page_id = :page_id AND user_id = :user_id) ORDER BY RANDOM() LIMIT 5'),
+            {"page_id": page_id, "user_id": user_id}
+        ).fetchall()
+
         if not words:
             flash("No words found in the selected vocabulary page. Please add words before playing the game.")
             return redirect(url_for('VocabularyPage'))
@@ -602,43 +797,39 @@ def matching_game():
         meanings = [word.meaning for word in words]
         random.shuffle(meanings)
 
-        return render_template('matching_game.html', words=words, meanings=meanings)
+        return render_template('matching_game.html', words=words, meanings=meanings, page_id=page_id)
     except Exception as e:
         logging.exception("Error fetching words for matching game")
         flash("An error occurred while fetching words for the matching game. Please try again.")
         return redirect(url_for('VocabularyPage'))
 
+
 @app.route('/check_matching_answers', methods=['POST'])
 @login_required
 def check_matching_answers():
-    data = request.get_json()
-    user_id = session.get('user_id')
-
     try:
-        print("Incoming Data:", data)  # Debug print
-        word_ids = [item['word_id'] for item in data]
-        print("Extracted Word IDs:", word_ids)  # Debug print
+        data = request.get_json()
+        if not data:
+            raise ValueError("No data provided or invalid JSON format.")
 
-        # Validate word_ids to ensure they are all integers
-        word_ids = [int(word_id) for word_id in word_ids if word_id is not None and isinstance(word_id, int)]
-        print("Validated Word IDs:", word_ids)  # Debug print
+        results = data.get('results', [])
+        page_id = data.get('page_id')
 
-        if not word_ids:
-            raise ValueError("Invalid word_ids: All word_ids must be integers.")
+        if not results or not page_id:
+            raise ValueError("Missing results or page_id in the request data.")
 
-        # Fetch correct answers from database
+        user_id = session.get('user_id')
+        word_ids = [item['word_id'] for item in results]
+
         correct_answers = db.execute(
             text('SELECT word_id, meaning FROM Vocabulary WHERE word_id IN :word_ids'),
             {"word_ids": tuple(word_ids)}
         ).fetchall()
-        print("Correct Answers from DB:", correct_answers)  # Debug print
 
         correct_answers_dict = {row.word_id: row.meaning for row in correct_answers}
-        print("Correct Answers Dict:", correct_answers_dict)  # Debug print
 
-        # Check user answers
         user_correct_answers = {}
-        for item in data:
+        for item in results:
             word_id = item['word_id']
             user_answer = item['meaning']
             correct_answer = correct_answers_dict.get(word_id)
@@ -646,69 +837,44 @@ def check_matching_answers():
             if user_answer == correct_answer:
                 user_correct_answers[word_id] = user_answer
 
-        print("User Correct Answers:", user_correct_answers)  # Debug print
-
-        return jsonify({"status": "success", "correct_answers": user_correct_answers, "message": "Answers checked successfully."})
+        return jsonify({"status": "success", "correct_answers": user_correct_answers, "message": "Answers have been checked successfully.", "page_id": page_id})
     except Exception as e:
         logging.exception("Error checking answers")
         return jsonify({"status": "error", "message": str(e)})
 
-
-
+    
 @app.route('/update_points_matching_game', methods=['POST'])
-@login_required  # Yêu cầu người dùng đăng nhập
+@login_required
 def update_points_matching_game():
     data = request.get_json()
-    user_id = session.get("user_id")
-    ma_trang = data.get('ma_trang')
+    user_id = session.get('user_id')
 
     try:
         points_per_correct = data.get('points_per_correct')
         correct_answers = data.get('correct_answers')
         page_id = data.get('page_id')
 
-        if not points_per_correct or not correct_answers or not page_id:
-            raise ValueError("Missing required fields in JSON data")
-
-        word_ids = list(correct_answers.keys())
-        word_ids = [int(word_id) for word_id in word_ids if str(word_id).isdigit()]
-        logging.debug(f"Validated Word IDs: {word_ids}")
-
-        if not word_ids:
-            raise ValueError("Invalid word_ids: All word_ids must be integers.")
-
-        query = LearningProgress.query.filter(
-            LearningProgress.page_id == page_id,
-            LearningProgress.word_id.in_(word_ids),
-            LearningProgress.user_id == user_id
-        ).with_for_update().all()
-
-        if not query:
-            logging.warning(f"No existing scores found for page_id={page_id}, user_id={user_id}, word_ids={word_ids}")
-
-        total_points_added = 0
-
-        for word_id, correct_meaning in correct_answers.items():
-            result = db.execute(
-                text('SELECT score FROM TienDoHocTu WHERE ma_trang = :ma_trang AND user_id = :word_id AND ma_nguoi_dung = :user_id'),
-                {"ma_trang": ma_trang, "word_id": word_id, "user_id": user_id}
-            ).fetchone()
-
-            row.score = new_points
-            row.last_study_date = datetime.utcnow()
-            db.session.commit()
-
+        # Update score in LearningProgress table
+        for word_id in correct_answers.keys():
             db.execute(
-                text('UPDATE TienDoHocTu SET score = :new_points, lan_cuoi_hoc = CURRENT_TIMESTAMP WHERE ma_trang = :ma_trang AND user_id = :word_id AND ma_nguoi_dung = :user_id'),
-                {"new_points": new_points, "ma_trang": ma_trang, "word_id": word_id, "user_id": user_id}
+                text('''
+                    UPDATE LearningProgress
+                    SET score = score + :points_per_correct
+                    WHERE page_id = :page_id AND user_id = :user_id AND word_id = :word_id
+                '''),
+                {
+                    "points_per_correct": points_per_correct,
+                    "page_id": page_id,
+                    "user_id": user_id,
+                    "word_id": word_id
+                }
             )
 
-        return jsonify({"status": "success", "message": f"Points updated successfully. Total points added: {total_points_added}"})
-
+        db.commit()
+        return jsonify({"status": "success", "message": "Points have been successfully updated."})
     except Exception as e:
-        logging.error(f"Error updating points: {e}")
-        db.session.rollback()
-        return jsonify({"status": "error", "message": str(e)}), 500
-
+        logging.exception("Error updating points")
+        return jsonify({"status": "error", "message": str(e)})
+    
 if __name__ == "__main__":
     app.run(debug=True)

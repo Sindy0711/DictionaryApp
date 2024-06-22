@@ -8,10 +8,10 @@
       <table class="table list">
         <thead>
           <tr>
-            <th scope="col">Từ</th>
-            <th scope="col">Phiên Âm</th>
-            <th scope="col">Mô tả</th>
-            <th scope="col">Chọn</th>
+            <th scope="col">Word</th>
+            <th scope="col">Pronunciation</th>
+            <th scope="col">Means</th>
+            <th scope="col">Select</th>
           </tr>
         </thead>
         <tbody>
@@ -60,6 +60,5 @@
   </div>
   <a href="{{ url_for('VocabularyPage') }}" class="btn btn-primary">Back to Pages</a>
 </div>
-
-<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+<script src="{{ url_for('static', filename='js/word-management.js') }}"></script>
 {% endblock %}

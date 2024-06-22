@@ -13,14 +13,43 @@
                     <div class="cell">Word</div>
                     <div class="cell">Pronunciation</div>
                     <div class="cell">Meaning</div>
-                    <div class="cell">Score</div>
+                    <div class="cell">Progress</div>
                 </div>
                 {% for word in words %}
                 <div class="row">
                     <div class="cell">{{ word.word }}</div>
                     <div class="cell">{{ word.pronunciation }}</div>
                     <div class="cell">{{ word.meaning }}</div>
-                    <div class="cell">{{ word.score }}</div>
+                    <div class="cell">
+                        <canvas id="scoreChart-{{ loop.index }}" width="100" height="100"></canvas>
+                        <script>
+                            document.addEventListener('DOMContentLoaded', function() {
+                                var ctx = document.getElementById('scoreChart-{{ loop.index }}').getContext('2d');
+                                var chart = new Chart(ctx, {
+                                    type: 'pie',
+                                    data: {
+                                        datasets: [{
+                                            data: [{{ word.percentage }}, 100 - {{ word.percentage }}],
+                                            backgroundColor: ['#4CAF50', '#e0e0e0'],
+                                            borderWidth: 1
+                                        }]
+                                    },
+                                    options: {
+                                        responsive: false,
+                                        cutout: '75%',
+                                        plugins: {
+                                            tooltip: {
+                                                enabled: false
+                                            },
+                                            legend: {
+                                                display: false
+                                            }
+                                        }
+                                    },
+                                });
+                            });
+                        </script>
+                    </div>
                 </div>
                 {% endfor %}
             </div>
@@ -28,7 +57,12 @@
             <p>No words found</p>
             {% endif %}
         </div>
-        <a href="{{ url_for('VocabularyPage') }}" class="btn btn-primary">Back to Pages</a>
+        <div class="button-container mt-2">
+            <button type="button" class="btn btn-warning" onclick="location.href='{{ url_for('recommend', page_id=page.page_id) }}'">Recommend</button>
+            <button type="button" class="btn btn-danger" onclick="location.href='{{ url_for('delete_words', page_id=page.page_id) }}'">Delete Words</button>
+            <a href="{{ url_for('VocabularyPage') }}" class="btn btn-primary">Back to Pages</a>
+        </div>
     </div>
 </div>
+
 {% endblock %}

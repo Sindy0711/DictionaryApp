@@ -18,7 +18,9 @@
                     <p><strong>Page name:</strong> {{ page. page_name}}</p>
                     <p><strong>Describe:</strong> {{ page.description or "No Description" }}</p>
                     <a href="{{ url_for('view_page', page_id=page. page_id) }}" class="btn btn-info mt-2">See vocabulary</a>
-                    <a href="{{ url_for('matching_game', page_id=page. page_id) }}" class="btn btn-secondary mt-2">Play word matching game</a>
+                    <button type="button" class="btn btn-warning mt-2" onclick="location.href='{{ url_for('recommend', page_id=page.page_id) }}'">Recommend</button>
+                    <button type="button" class="btn btn-danger mt-2" data-page-id="{{ page.page_id }}">Delete</button>
+                </li>
                 </li>
                 {% endfor %}
             </ul>
@@ -50,6 +52,5 @@
         </div>
     </div>
 </div>
-    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+<script src="{{ url_for('static', filename='js/page_management.js') }}"></script>
 {% endblock %}
-
