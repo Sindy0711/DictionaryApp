@@ -1,0 +1,38 @@
+{% extends "layout.html" %}
+
+{% block title %}Delete Words{% endblock %}
+
+{% block content %}
+<div class="view-page">
+    <div class="container">
+        <div class="content-wrapper">
+            <h2>Delete Words from Page {{ page_id }}</h2>
+            {% if words %}
+            <form id="delete-form" action="{{ url_for('confirm_delete', page_id=page_id) }}" method="post">
+                <input type="hidden" name="page_id" value="{{ page_id }}">
+                <div class="table">
+                    <div class="row header">
+                        <div class="cell">Word</div>
+                        <div class="cell">Pronunciation</div>
+                        <div class="cell">Meaning</div>
+                        <div class="cell">Select</div>
+                    </div>
+                    {% for word in words %}
+                    <div class="row">
+                        <div class="cell">{{ word.word }}</div>
+                        <div class="cell">{{ word.pronunciation }}</div>
+                        <div class="cell">{{ word.meaning }}</div>
+                        <div class="cell"><input type="checkbox" name="selected_words" value="{{ word.word_id }}"></div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <button type="submit" class="btn btn-danger mt-2">Delete selected words</button>
+            </form>
+            {% else %}
+            <p>No words found.</p>
+            {% endif %}
+        </div>
+        <a href="{{ url_for('view_page', page_id=page_id) }}" class="btn btn-primary">Back to Pages</a>
+    </div>
+</div>
+{% endblock %}

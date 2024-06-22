@@ -12,7 +12,7 @@
                 <div class="row header">
                     <div class="cell">Word</div>
                     <div class="cell">Pronunciation</div>
-                    <div class="cell">Means</div>
+                    <div class="cell">Meaning</div>
                     <div class="cell">Progress</div>
                 </div>
                 {% for word in words %}
@@ -36,7 +36,7 @@
                                     },
                                     options: {
                                         responsive: false,
-                                        cutout: '75%',  // Increased cutout percentage to provide more inner space
+                                        cutout: '75%',
                                         plugins: {
                                             tooltip: {
                                                 enabled: false
@@ -59,6 +59,7 @@
         </div>
         <div class="button-container mt-2">
             <button type="button" class="btn btn-warning" onclick="location.href='{{ url_for('recommend', page_id=page.page_id) }}'">Recommend</button>
+            <button type="button" class="btn btn-danger" onclick="location.href='{{ url_for('delete_words', page_id=page.page_id) }}'">Delete Words</button>
             <a href="{{ url_for('VocabularyPage') }}" class="btn btn-primary">Back to Pages</a>
         </div>
     </div>

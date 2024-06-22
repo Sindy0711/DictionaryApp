@@ -247,6 +247,8 @@ def create_vocabulary_page():
         logging.exception("Error creating vocabulary page")
         return jsonify({"status": "error", "message": str(e)})
 
+#xóa trang
+
 @app.route('/delete_vocabulary_page/<int:page_id>', methods=['DELETE'])
 @login_required
 def delete_vocabulary_page(page_id):
@@ -279,6 +281,8 @@ def et_vocabulary_pages():
     except Exception as e:
         logging.exception("Error fetching vocabulary pages")
         return jsonify({"status": "error", "message": str(e)})
+    
+#lưu từ vào trang
 
 @app.route('/save_words_to_existing_page', methods=['POST'])
 @login_required
@@ -426,7 +430,51 @@ def saved_words():
     # Xử lý yêu cầu GET
     return render_template('saved_words.html')
 
-    
+
+#xóa từ
+@app.route('/delete_words/<int:page_id>', methods=['GET'])
+@login_required
+def delete_words(page_id):
+    user_id = session.get("user_id")
+    try:
+        with engine.connect() as db:
+            # Truy vấn thông tin các từ trong learningprogress
+            words = db.execute(
+                text('SELECT v.word, v.pronunciation, v.meaning, lp.word_id '
+                     'FROM LearningProgress lp '
+                     'JOIN Vocabulary v ON lp.word_id = v.word_id '
+                     'WHERE lp.page_id = :page_id AND lp.user_id = :user_id'),
+                {"page_id": page_id, "user_id": user_id}
+            ).fetchall()
+        
+        return render_template('delete_words.html', page_id=page_id, words=words)
+    except Exception as e:
+        logging.exception("Error fetching words for deletion")
+        return render_template("error.html", message=str(e))
+
+@app.route('/confirm_delete/<int:page_id>', methods=['POST'])
+@login_required
+def confirm_delete(page_id):
+    user_id = session.get("user_id")
+    selected_words = request.form.getlist('selected_words')
+    if not selected_words:
+        flash("No words selected for deletion.")
+        return redirect(url_for('delete_words', page_id=page_id))
+
+    try:
+        with engine.connect() as db:
+            delete_query = text('DELETE FROM LearningProgress '
+                                'WHERE page_id = :page_id AND user_id = :user_id AND word_id = :word_id')
+            for word_id in selected_words:
+                db.execute(delete_query, {"page_id": page_id, "user_id": user_id, "word_id": word_id})
+            db.commit()
+        flash("Selected words deleted successfully.")
+        return redirect(url_for('view_page', page_id=page_id))
+    except Exception as e:
+        logging.exception("Error deleting words")
+        return render_template("error.html", message=str(e))
+
+
 @app.route('/VocabularyPage')
 @login_required
 def VocabularyPage():
