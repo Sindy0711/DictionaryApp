@@ -4,6 +4,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const saveWordsBtn = document.getElementById("save-words-btn");
   const selectPageForm = document.getElementById("select-page-form");
   const existingPageSelect = document.getElementById("existing-page");
+
   const createPageBtn = document.getElementById("create-page-btn");
   const createPageForm = document.getElementById("create-page-form");
 
@@ -26,6 +27,8 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("Error loading vocabulary pages:", error);
     }
   }
+
+  loadVocabularyPages(); // Gọi hàm loadVocabularyPages() sau khi DOM được tải
 
   function renderSelectedWords() {
     selectedWordsContainer.innerHTML = "";
@@ -83,9 +86,7 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const response = await fetch("/create_vocabulary_page", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           page_name: pageName,
           page_description: pageDescription,
@@ -148,6 +149,4 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Load vocabulary pages on page load
-  loadVocabularyPages();
 });

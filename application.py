@@ -13,7 +13,6 @@ from datetime import datetime
 import random
 from datetime import datetime
 
-# Load environment variables
 load_dotenv()
 
 # Configure logging
@@ -58,7 +57,7 @@ def get_random_question():
         with engine.connect() as db:
             question = get_random_question()
             if not question:
-                raise Exception("No random question found")  # Ném ngoại lệ nếu không có câu hỏi nào được tìm thấy
+                raise Exception("No random question found")  
             return question
     except Exception as e:
         print(f"Error in get_random_question: {e}")
@@ -78,15 +77,6 @@ def process_multiple_choice(user_choice, correct_answer, start_time, session):
         flash(f"Incorrect. The correct answer is: {correct_answer}", "danger")
     
     session['question_number'] += 1
-    
-    # # Logging the result
-    # if user_choice == correct_answer:
-    #     result = "Correct"
-    # else:
-    #     result = f"Incorrect. Correct answer: {correct_answer}"
-    
-    # print(f"Question {session['question_number']}: {result}. Time taken: {time_diff} seconds")
-
 
 def get_random_choices(correct_answer,column):
     with engine.connect() as db:
@@ -96,10 +86,17 @@ def get_random_choices(correct_answer,column):
         ).fetchall()
         return [choice[0] for choice in choices]
 
-# Hàm render câu hỏi
 def render_question(question_text, correct_answer, choices):
     random.shuffle(choices)
     return render_template('multiple_choice.html', question_text=question_text, choices=choices, correct_answer=correct_answer, question_number=session['question_number'])
+
+quiz_questions_count = {
+    'fill_in_the_blanks': 3,
+    'word_to_meaning': 3,
+    'meaning_to_word': 3,
+    'flashcard': 1
+}
+
 
 @app.route('/')
 def index():
@@ -487,8 +484,9 @@ def quiz():
 
     if request.method == 'POST':
         quiz_type = request.form.get('quiz_type')
-        if quiz_type in ['fill_in_the_blanks', 'word_to_meaning', 'meaning_to_word' , 'flashcard']:
-            return redirect(url_for(quiz_type))
+        selected_quiz = random.choice(quiz_type)
+        session['total_questions'] = quiz_questions_count[selected_quiz]
+        return redirect(url_for(selected_quiz))
 
     return render_template('quiz.html')
 
@@ -504,14 +502,15 @@ def meaning_to_word():
 def quiz_route(question_col, answer_col):
     session.setdefault('score', 0)
     session.setdefault('question_number', 0)
-
+    total_questions = session.get('total_questions', 10)
+    
     if request.method == 'POST':
         user_choice = request.form.get('user_choice')
         correct_answer = request.form.get('correct_answer')
         start_time = session.get('start_time')
 
         process_multiple_choice(user_choice, correct_answer, start_time)
-        if session['question_number'] >= 10:
+        if session['question_number'] >= total_questions:
             return render_template("finished.html", score=session['score'])
 
     session['start_time'] = datetime.now()
@@ -531,6 +530,7 @@ def quiz_route(question_col, answer_col):
 def fill_in_the_blanks():
     session.setdefault('score', 0)
     session.setdefault('question_number', 0)
+    total_questions = session.get('total_questions', 10)
 
     if request.method == 'POST':
         user_answer = request.form.get('user_answer')
@@ -544,7 +544,7 @@ def fill_in_the_blanks():
             flash(f"Incorrect. The correct word is: {correct_word}", "danger")
 
         session['question_number'] = question_number + 1
-        if session['question_number'] >= 10:
+        if session['question_number'] >= total_questions:
             return render_template("finished.html", score=session['score'])
 
         return redirect(url_for('fill_in_the_blanks'))
@@ -558,9 +558,12 @@ def fill_in_the_blanks():
 
     return render_template('fill_in_the_blanks.html', meaning=meaning, correct_word=correct_word, question_number=session['question_number'])
 
+
 @app.route('/next', methods=['POST'])
 def next_question():
     session['question_number'] += 1
+    if session['question_number'] >= session.get('total_questions', 10):
+        return render_template("finished.html", score=session['score'])
     return redirect(url_for('multiple_choice'))
 
 @app.route('/restart_quiz')
@@ -592,7 +595,6 @@ def matching_game():
         text('SELECT * FROM Vocabulary WHERE word_id IN (SELECT word_id FROM LearningProgress WHERE page_id = :page_id AND user_id = :user_id) ORDER BY RANDOM() LIMIT 5'),
         {"page_id": page_id, "user_id": user_id}
     ).fetchall()
-
         if not words:
             flash("No words found in the selected vocabulary page. Please add words before playing the game.")
             return redirect(url_for('VocabularyPage'))
