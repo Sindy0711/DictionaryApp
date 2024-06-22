@@ -246,7 +246,7 @@ def create_vocabulary_page():
     except Exception as e:
         logging.exception("Error creating vocabulary page")
         return jsonify({"status": "error", "message": str(e)})
-    
+
 @app.route('/delete_vocabulary_page/<int:page_id>', methods=['DELETE'])
 @login_required
 def delete_vocabulary_page(page_id):
@@ -263,7 +263,58 @@ def delete_vocabulary_page(page_id):
     except Exception as e:
         logging.exception("Error deleting vocabulary page")
         return jsonify({"status": "error", "message": str(e)})
+
+@app.route('/api/get_vocabulary_pages', methods=['GET'])
+@login_required
+def et_vocabulary_pages():
+    try:
+        user_id = session.get("user_id")
+        with engine.connect() as db:
+            result = db.execute(
+                text('SELECT page_id, page_name FROM VocabularyPage WHERE user_id = :user_id'),
+                {"user_id": user_id}
+            ).fetchall()
+            pages = [{"page_id": row[0], "page_name": row[1]} for row in result] 
+        return jsonify({"status": "success", "pages": pages})
+    except Exception as e:
+        logging.exception("Error fetching vocabulary pages")
+        return jsonify({"status": "error", "message": str(e)})
+
+@app.route('/save_words_to_existing_page', methods=['POST'])
+@login_required
+def save_words_to_existing_page():
+    try:
+        data = request.get_json()
+        existing_page_id = data.get('existing_page_id')
+        words = data.get('words')
+
+        if not existing_page_id or not words:
+            return jsonify({"status": "error", "message": "Invalid data"}), 400
+
+        user_id = session.get("user_id")
+
+        with engine.connect() as db:
+            word_count = db.execute(
+                text('SELECT COUNT(*) FROM LearningProgress WHERE page_id = :page_id AND user_id = :user_id'),
+                {"page_id": existing_page_id, "user_id": user_id}
+            ).scalar()
+
+            if word_count + len(words) > 10:
+                return jsonify({"status": "error", "message": "The page already has too many words. Please create a new page."}), 400
+
+            insert_query = text('INSERT INTO LearningProgress (page_id, user_id, word_id, score) VALUES (:page_id, :user_id, :word_id, 0)')
+            for word in words:
+                db.execute(
+                    insert_query,
+                    {"page_id": existing_page_id, "user_id": user_id, "word_id": word['word_id']}
+                )
+            db.commit()
+
+        return jsonify({"status": "success", "message": "Words saved successfully!"})
     
+    except Exception as e:
+        logging.exception("Error while saving word")
+
 @app.route('/save_page', methods=['GET', 'POST'])
 @login_required
 def save_page():
@@ -287,10 +338,21 @@ def save_page():
                 else:
                     page_id = existing_page_id
 
+                word_count = db.execute(
+                    text('SELECT COUNT(*) FROM LearningProgress WHERE page_id = :page_id AND user_id = :user_id'),
+                    {"page_id": page_id, "user_id": user_id}
+                ).scalar()
+
+                if word_count + len(selected_words) > 10:
+                    flash("The page already has too many words. Please create a new page.")
+                    return redirect(url_for('search'))
+
                 insert_query = text('INSERT INTO LearningProgress (page_id, user_id, word_id, score) VALUES (:page_id, :user_id, :word_id, 0)')
                 for word in selected_words:
-                    db.execute(insert_query, {"page_id": page_id, "user_id": user_id, "word_id": word})
-
+                    db.execute(
+                        insert_query,
+                        {"page_id": page_id, "user_id": user_id, "word_id": word}
+                    )
                 db.commit()
 
             session['selected_words'] = []
@@ -312,62 +374,6 @@ def save_page():
         except Exception as e:
             logging.exception("Error fetching vocabulary pages")
             return render_template("error.html", message=str(e))
-
-@app.route('/api/get_vocabulary_pages', methods=['GET'])
-@login_required
-def et_vocabulary_pages():
-    try:
-        user_id = session.get("user_id")
-        with engine.connect() as db:
-            result = db.execute(
-                text('SELECT page_id, page_name FROM VocabularyPage WHERE user_id = :user_id'),
-                {"user_id": user_id}
-            ).fetchall()
-            pages = [{"page_id": row[0], "page_name": row[1]} for row in result] 
-        return jsonify({"status": "success", "pages": pages})
-    except Exception as e:
-        logging.exception("Error fetching vocabulary pages")
-        return jsonify({"status": "error", "message": str(e)})
-
-
-
-
-@app.route('/save_words_to_existing_page', methods=['POST'])
-@login_required
-def save_words_to_existing_page():
-    try:
-        data = request.get_json()
-        existing_page_id = data.get('existing_page_id')
-        words = data.get('words')
-
-        if not existing_page_id or not words:
-            return jsonify({"status": "error", "message": "Invalid data"}), 400
-
-        user_id = session.get("user_id")
-
-        with engine.connect() as db:
-            word_count = db.execute(
-                text('SELECT COUNT(*) FROM PageWords WHERE page_id = :page_id'),
-                {"page_id": existing_page_id}
-            ).scalar()
-
-            if word_count + len(words) > 10:
-                return jsonify({"status": "error", "message": "The page already has too many words. Please create a new page."}), 400
-
-            insert_query = text('INSERT INTO PageWords (page_id, word, pronunciation, meaning) VALUES (:page_id, :word, :pronunciation, :meaning)')
-            for word in words:
-                db.execute(
-                    insert_query,
-                    {"page_id": existing_page_id, "word": word['word'], "pronunciation": word['pronunciation'], "meaning": word['meaning']}
-                )
-            db.commit()
-
-        return jsonify({"status": "success", "message": "Words saved successfully!"})
-    
-    except Exception as e:
-        logging.exception("Error while saving word")
-        return jsonify({"status": "error", "message": str(e)}), 500
-
 
 @app.route('/saved_words', methods=['GET', 'POST'])
 @login_required
@@ -532,8 +538,6 @@ def save_suggestions(page_id):
     except Exception as e:
         logging.exception("Error saving recommended words")
         return render_template("error.html", message=str(e))
-
-
 
 @app.route('/view_page/<int:page_id>')
 @login_required

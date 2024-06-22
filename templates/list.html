@@ -22,18 +22,7 @@
             <td>{{ item.word }}</td>
             <td>{{ item.pronunciation }}</td>
             <td>{{ item.meaning }}</td>
-            <td>
-              <button
-                class="btn btn-secondary btn-select"
-                data-word="{{item.word}}"
-                data-pronunciation="{{item.pronunciation}}"
-                data-meaning="{{item.meaning}}"
-                data-word_id="{{item.word_id}}"
-              >
-                Chọn
-              </button>
-            </td>
-          </tr>
+        </tr>
           {% endfor %}
         </tbody>
       </table>
@@ -49,5 +38,4 @@
   </div>
 </div>
 
-<script src="{{ url_for('static', filename='js/script.js') }}"></script>
 {% endblock %}
