@@ -19,7 +19,6 @@
                     <p><strong>Describe:</strong> {{ page.description or "Không có mô tả" }}</p>
                     <a href="{{ url_for('view_page', page_id=page. page_id) }}" class="btn btn-info mt-2">See vocabulary</a>
                     <button type="button" class="btn btn-warning mt-2" onclick="location.href='{{ url_for('recommend', page_id=page.page_id) }}'">Recommend</button>
-                    <a href="{{ url_for('matching_game', page_id=page. page_id) }}" class="btn btn-secondary mt-2">Play word matching game</a>
                     <button type="button" class="btn btn-danger mt-2" data-page-id="{{ page.page_id }}">Delete</button>
                 </li>
                 </li>
