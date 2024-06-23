@@ -268,16 +268,16 @@ def delete_vocabulary_page(page_id):
 
 @app.route('/api/get_vocabulary_pages', methods=['GET'])
 @login_required
-def et_vocabulary_pages():
+def get_vocabulary_pages():
+    user_id = session.get("user_id")
     try:
-        user_id = session.get("user_id")
         with engine.connect() as db:
-            result = db.execute(
+            pages = db.execute(
                 text('SELECT page_id, page_name FROM VocabularyPage WHERE user_id = :user_id'),
                 {"user_id": user_id}
             ).fetchall()
-            pages = [{"page_id": row[0], "page_name": row[1]} for row in result] 
-        return jsonify({"status": "success", "pages": pages})
+            pages = [{"page_id": page.page_id, "page_name": page.page_name} for page in pages]
+            return jsonify({"status": "success", "pages": pages})
     except Exception as e:
         logging.exception("Error fetching vocabulary pages")
         return jsonify({"status": "error", "message": str(e)})
@@ -319,117 +319,10 @@ def save_words_to_existing_page():
     except Exception as e:
         logging.exception("Error while saving word")
 
-@app.route('/save_page', methods=['GET', 'POST'])
-@login_required
-def save_page():
-    user_id = session.get("user_id")
-    if request.method == 'POST':
-        selected_words = request.form.getlist('selected_words')
-        page_name = request.form.get('page_name')
-        existing_page_id = request.form.get('existing_page_id')
-
-        try:
-            if not page_name and not existing_page_id:
-                flash("Please enter a page name or select an existing page.")
-                return redirect(url_for('search'))
-
-            with engine.connect() as db:
-                if page_name:
-                    result = db.execute(
-                        text('INSERT INTO VocabularyPage (page_name, user_id) VALUES (:page_name, :user_id) RETURNING page_id'),
-                        {"page_name": page_name, "user_id": user_id})
-                    page_id = result.fetchone()[0]
-                else:
-                    page_id = existing_page_id
-
-                word_count = db.execute(
-                    text('SELECT COUNT(*) FROM LearningProgress WHERE page_id = :page_id AND user_id = :user_id'),
-                    {"page_id": page_id, "user_id": user_id}
-                ).scalar()
-
-                if word_count + len(selected_words) > 10:
-                    flash("The page already has too many words. Please create a new page.")
-                    return redirect(url_for('search'))
-
-                insert_query = text('INSERT INTO LearningProgress (page_id, user_id, word_id, score) VALUES (:page_id, :user_id, :word_id, 0)')
-                for word in selected_words:
-                    db.execute(
-                        insert_query,
-                        {"page_id": page_id, "user_id": user_id, "word_id": word}
-                    )
-                db.commit()
-
-            session['selected_words'] = []
-            flash("Words saved successfully.")
-            return redirect(url_for('VocabularyPage'))
-        except Exception as e:
-            logging.exception("Error saving words")
-            return render_template("error.html", message=str(e))
-
-    else:
-        try:
-            existing_pages = db.execute(
-                text('SELECT page_id, page_name FROM VocabularyPage WHERE user_id = :user_id'), 
-                {"user_id": user_id}).fetchall()
-
-            logging.debug(f"Fetched existing pages: {existing_pages}")
-
-            return render_template('list.html', existing_pages=existing_pages)
-        except Exception as e:
-            logging.exception("Error fetching vocabulary pages")
-            return render_template("error.html", message=str(e))
-
 @app.route('/saved_words', methods=['GET', 'POST'])
 @login_required
 def saved_words():
-    if request.method == 'POST':
-        selected_words = request.form.getlist('selected_words')
-        page_name = request.form.get('page_name')
-        existing_page_id = request.form.get('existing_page_id')
-
-        try:
-            if not page_name and not existing_page_id:
-                flash("Please enter a page name or select an existing page.")
-                return redirect(url_for('saved_words'))
-            user_id = session.get("user_id")
-
-            with engine.connect() as db:
-                if page_name:
-                    result = db.execute(
-                        text('INSERT INTO VocabularyPage (page_name, user_id) VALUES (:page_name, :user_id) RETURNING page_id'),
-                        {"page_name": page_name, "user_id": user_id}
-                    )
-                    page_id = result.fetchone()[0]
-                else:
-                    page_id = existing_page_id
-
-                word_count = db.execute(
-                    text('SELECT COUNT(*) FROM PageWords WHERE page_id = :page_id'),
-                    {"page_id": page_id}
-                ).scalar()
-                
-                if word_count + len(selected_words) > 10:
-                    flash("The page already has too many words. Please create a new page.")
-                    return redirect(url_for('search'))
-                insert_query = text('INSERT INTO PageWords (page_id, word, pronunciation, meaning) VALUES (:page_id, :word, :pronunciation, :meaning)')
-                for word in selected_words:
-                    db.execute(
-                        insert_query,
-                        {"page_id": page_id, "word": word['word'], "pronunciation": word['pronunciation'], "meaning": word['meaning']}
-                    )
-                db.commit()
-
-            session['selected_words'] = []  # Xóa session sau khi lưu
-            flash("Saved word successfully.")
-            return redirect(url_for('vocabulary_page'))
-        
-        except Exception as e:
-            logging.exception("Error while saving word")
-            return render_template("error.html", message=str(e))
-    
-    # Xử lý yêu cầu GET
-    return render_template('saved_words.html')
-
+    pass
 
 #xóa từ
 @app.route('/delete_words/<int:page_id>', methods=['GET'])

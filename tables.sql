@@ -54,11 +54,3 @@ CREATE TABLE LearningProgress (
     FOREIGN KEY (word_id) REFERENCES Vocabulary(word_id),
     FOREIGN KEY (page_id) REFERENCES VocabularyPage(page_id)
 );
-
-CREATE TABLE PageWords (
-    page_id INT REFERENCES VocabularyPage(page_id),
-    word_id INT REFERENCES Vocabulary(word_id),
-    word VARCHAR(255),
-    pronunciation VARCHAR(255),
-    meaning TEXT
-);
