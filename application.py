@@ -244,7 +244,6 @@ def create_vocabulary_page():
         logging.debug("Vocabulary page created successfully")
         return jsonify({"status": "success", "page_id": page_id})
     except Exception as e:
-        logging.exception("Error creating vocabulary page")
         return jsonify({"status": "error", "message": str(e)})
 
 #xóa trang
@@ -263,7 +262,6 @@ def delete_vocabulary_page(page_id):
             db.commit()
         return jsonify({"status": "success"})
     except Exception as e:
-        logging.exception("Error deleting vocabulary page")
         return jsonify({"status": "error", "message": str(e)})
 
 @app.route('/api/get_vocabulary_pages', methods=['GET'])
@@ -279,7 +277,6 @@ def get_vocabulary_pages():
             pages = [{"page_id": page.page_id, "page_name": page.page_name} for page in pages]
             return jsonify({"status": "success", "pages": pages})
     except Exception as e:
-        logging.exception("Error fetching vocabulary pages")
         return jsonify({"status": "error", "message": str(e)})
     
 #lưu từ vào trang
@@ -308,16 +305,23 @@ def save_words_to_existing_page():
 
             insert_query = text('INSERT INTO LearningProgress (page_id, user_id, word_id, score) VALUES (:page_id, :user_id, :word_id, 0)')
             for word in words:
-                db.execute(
-                    insert_query,
-                    {"page_id": existing_page_id, "user_id": user_id, "word_id": word['word_id']}
-                )
+                try:
+                    db.execute(
+                        insert_query,
+                        {"page_id": existing_page_id, "user_id": user_id, "word_id": word['word_id']}
+                    )
+                except Exception as e:
+                    if "duplicate key value violates unique constraint" in str(e):
+                        return jsonify({"status": "error", "message": f"Word with ID {word['word_id']} already exists on this page."}), 400
+                    else:
+                        raise e
             db.commit()
 
         return jsonify({"status": "success", "message": "Words saved successfully!"})
-    
+
     except Exception as e:
-        logging.exception("Error while saving word")
+        return jsonify({"status": "error", "message": str(e)})
+
 
 @app.route('/saved_words', methods=['GET', 'POST'])
 @login_required
@@ -342,8 +346,8 @@ def delete_words(page_id):
         
         return render_template('delete_words.html', page_id=page_id, words=words)
     except Exception as e:
-        logging.exception("Error fetching words for deletion")
         return render_template("error.html", message=str(e))
+    
 
 @app.route('/confirm_delete/<int:page_id>', methods=['POST'])
 @login_required
@@ -364,7 +368,6 @@ def confirm_delete(page_id):
         flash("Selected words deleted successfully.")
         return redirect(url_for('view_page', page_id=page_id))
     except Exception as e:
-        logging.exception("Error deleting words")
         return render_template("error.html", message=str(e))
 
 
@@ -383,7 +386,6 @@ def VocabularyPage():
 
         return render_template('VocabularyPage.html', pages=pages)
     except Exception as e:
-        logging.exception("Error fetching vocabulary pages")
         return render_template("error.html", message=str(e))
     
 #RECOMMAND
@@ -453,7 +455,6 @@ def recommend(page_id):
 
         return render_template('recommend.html', page={"page_id": page_id, "page_name": page_name}, suggested_words=suggested_words)
     except Exception as e:
-        logging.exception("Error in recommending words")
         return render_template("error.html", message=str(e))
 
 @app.route('/save_suggestions/<int:page_id>', methods=['POST'])
@@ -477,7 +478,6 @@ def save_suggestions(page_id):
         flash("Words saved successfully.")
         return redirect(url_for('view_page', page_id=page_id))
     except Exception as e:
-        logging.exception("Error saving recommended words")
         return render_template("error.html", message=str(e))
 
 @app.route('/view_page/<int:page_id>')
@@ -523,7 +523,6 @@ def view_page(page_id):
         
         return render_template('view_page.html', page=page, words=words)
     except Exception as e:
-        logging.exception("Error viewing page")
         return render_template("error.html", message=str(e))
     
 # FLASHCARD 
@@ -670,7 +669,6 @@ def matching_game():
 
         return render_template('matching_game.html', words=words, meanings=meanings, page_id=page_id)
     except Exception as e:
-        logging.exception("Error fetching words for matching game")
         flash("An error occurred while fetching words for the matching game. Please try again.")
         return redirect(url_for('VocabularyPage'))
 
@@ -710,7 +708,6 @@ def check_matching_answers():
 
         return jsonify({"status": "success", "correct_answers": user_correct_answers, "message": "Answers have been checked successfully.", "page_id": page_id})
     except Exception as e:
-        logging.exception("Error checking answers")
         return jsonify({"status": "error", "message": str(e)})
 
     
@@ -744,7 +741,6 @@ def update_points_matching_game():
         db.commit()
         return jsonify({"status": "success", "message": "Points have been successfully updated."})
     except Exception as e:
-        logging.exception("Error updating points")
         return jsonify({"status": "error", "message": str(e)})
     
 if __name__ == "__main__":
