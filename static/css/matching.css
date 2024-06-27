@@ -1,31 +1,31 @@
-body {
+.matching-body {
     font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
 }
 
-h1 {
+.matching-title {
     margin-top: 20px;
 }
 
-.game-wrapper {
+.matching-wrapper {
     width: 80%;
-    margin-top: 20px;
+    margin: 20px auto;
     background-color: #fff;
     padding: 20px;
     border-radius: 10px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-.game-container {
+.matching-container {
     display: flex;
     justify-content: space-between;
 }
 
-.words-container, .meanings-container {
+.matching-words-container, .matching-meanings-container {
     width: 45%;
 }
 
-
-.words, .meanings {
+.matching-words, .matching-meanings {
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -36,7 +36,7 @@ h1 {
     background-color: #f9f9f9;
 }
 
-.word, .meaning {
+.matching-word, .matching-meaning {
     background-color: #ffffff;
     border: 1px solid #ccc;
     padding: 10px;
@@ -45,17 +45,17 @@ h1 {
     cursor: pointer;
 }
 
-.word.correct {
+.matching-correct {
     background-color: #d4edda; /* green */
     border-color: #c3e6cb;
 }
 
-.word.incorrect {
+.matching-incorrect {
     background-color: #f8d7da; /* red */
     border-color: #f5c6cb;
 }
 
-#checkAnswers {
+#matching-checkAnswers {
     margin-top: 20px;
     padding: 10px 20px;
     border: none;
@@ -65,6 +65,29 @@ h1 {
     cursor: pointer;
 }
 
-#checkAnswers:hover {
+#matching-checkAnswers:hover {
     background-color: #45a049;
+}
+
+#matching-timer {
+    font-size: 20px;
+    margin-bottom: 20px;
+}
+
+.matching-float-right {
+    text-align: right;
+    margin-top: 20px;
+}
+
+.matching-float-right .btn-success {
+    margin-top: 10px;
+    text-decoration: none;
+    color: white;
+    background-color: #28a745;
+    padding: 10px 20px;
+    border-radius: 5px;
+}
+
+.matching-float-right .btn-success:hover {
+    background-color: #218838;
 }

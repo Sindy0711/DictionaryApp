@@ -45,7 +45,7 @@
                                                 display: false
                                             }
                                         }
-                                    },
+                                    }
                                 });
                             });
                         </script>
@@ -56,11 +56,11 @@
             {% else %}
             <p>No words found</p>
             {% endif %}
-        </div>
-        <div class="button-container mt-2">
-            <button type="button" class="btn btn-warning" onclick="location.href='{{ url_for('recommend', page_id=page.page_id) }}'">Recommend</button>
-            <button type="button" class="btn btn-danger" onclick="location.href='{{ url_for('delete_words', page_id=page.page_id) }}'">Delete Words</button>
-            <a href="{{ url_for('VocabularyPage') }}" class="btn btn-primary">Back to Pages</a>
+            <div class="button-container mt-2">
+                <button type="button" class="btn btn-warning" onclick="location.href='{{ url_for('recommend', page_id=page.page_id) }}'">Recommend</button>
+                <button type="button" class="btn btn-danger" onclick="location.href='{{ url_for('delete_words', page_id=page.page_id) }}'">Delete Words</button>
+                <a href="{{ url_for('VocabularyPage') }}" class="btn btn-primary">Back to Pages</a>
+            </div>
         </div>
     </div>
 </div>
