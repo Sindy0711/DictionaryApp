@@ -22,8 +22,9 @@ document.addEventListener("DOMContentLoaded", function () {
     buttons.forEach(function (button) {
       button.classList.remove("btn-selected");
     });
+    var escapedChoice = CSS.escape(choice);
     document
-      .querySelector('button[value="' + choice + '"]')
+      .querySelector(`button[value="${escapedChoice}"]`)
       .classList.add("btn-selected");
   };
 });

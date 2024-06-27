@@ -13,10 +13,8 @@ from datetime import datetime
 import random
 from datetime import datetime
 
-# Load environment variables
 load_dotenv()
 
-# Configure logging
 logging.basicConfig(level=logging.DEBUG)
 
 app = Flask(__name__)
@@ -54,20 +52,53 @@ def validate_password(password):
     return None
 
 def get_random_question():
-    with engine.connect() as db:
-        question = db.execute(text("SELECT * FROM Vocabulary ORDER BY RANDOM() LIMIT 1")).fetchone()
+    try:
+        user_id = session.get("user_id")
+        page_id = session.get('page_id')
+        
+        if not user_id or not page_id:
+            raise Exception("Page ID or User ID is missing")
+        
+        asked_questions = session.get('asked_questions', [])
+        if len(asked_questions) >= 10:
+            return render_template("finished.html", score=session['score'])
+        if asked_questions:
+            query = text('SELECT * FROM Vocabulary WHERE word_id IN '
+                         '(SELECT word_id FROM LearningProgress WHERE page_id = :page_id AND user_id = :user_id) '
+                         'AND word_id NOT IN :asked_questions ORDER BY RANDOM() LIMIT 1')
+            params = {"page_id": page_id, "user_id": user_id, "asked_questions": tuple(asked_questions)}
+        else:
+            query = text('SELECT * FROM Vocabulary WHERE word_id IN '
+                         '(SELECT word_id FROM LearningProgress WHERE page_id = :page_id AND user_id = :user_id) '
+                         'ORDER BY RANDOM() LIMIT 1')
+            params = {"page_id": page_id, "user_id": user_id}
+
+        question = db.execute(query, params).fetchone()
+
+        if not question:
+            raise Exception("No random question found")
+        
+        asked_questions.append(question.word_id)
+        session['asked_questions'] = asked_questions
+        
         return question
+    except Exception as e:
+        logging.error(f"Error in get_random_question: {e}")
+        return render_template("finished.html", score=session['score'])
     
 def process_multiple_choice(user_choice, correct_answer, start_time):
     end_time = datetime.now()
+    time_diff = (end_time - start_time).total_seconds()
+    
     if user_choice == correct_answer:
-        if (end_time - start_time).total_seconds() <= 5:
+        if time_diff <= 5:
             session['score'] += 0.72
         else:
             session['score'] += 0.12
         flash(f"Correct!", "success")
     else:
         flash(f"Incorrect. The correct answer is: {correct_answer}", "danger")
+    
     session['question_number'] += 1
 
 def get_random_choices(correct_answer,column):
@@ -78,10 +109,17 @@ def get_random_choices(correct_answer,column):
         ).fetchall()
         return [choice[0] for choice in choices]
 
-# Hàm render câu hỏi
 def render_question(question_text, correct_answer, choices):
     random.shuffle(choices)
     return render_template('multiple_choice.html', question_text=question_text, choices=choices, correct_answer=correct_answer, question_number=session['question_number'])
+
+quiz_questions_count = {
+    'fill_in_the_blanks': 1,
+    'word_to_meaning': 2,
+    'meaning_to_word': 2,
+    # 'matching_game': 1
+}
+
 
 @app.route('/')
 def index():
@@ -243,10 +281,10 @@ def create_vocabulary_page():
         db.commit()
         logging.debug("Vocabulary page created successfully")
         return jsonify({"status": "success", "page_id": page_id})
+
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)})
 
-#xóa trang
 
 @app.route('/delete_vocabulary_page/<int:page_id>', methods=['DELETE'])
 @login_required
@@ -267,8 +305,8 @@ def delete_vocabulary_page(page_id):
 @app.route('/api/get_vocabulary_pages', methods=['GET'])
 @login_required
 def get_vocabulary_pages():
-    user_id = session.get("user_id")
     try:
+        user_id = session.get("user_id")
         with engine.connect() as db:
             pages = db.execute(
                 text('SELECT page_id, page_name FROM VocabularyPage WHERE user_id = :user_id'),
@@ -279,7 +317,6 @@ def get_vocabulary_pages():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)})
     
-#lưu từ vào trang
 
 @app.route('/save_words_to_existing_page', methods=['POST'])
 @login_required
@@ -320,8 +357,7 @@ def save_words_to_existing_page():
         return jsonify({"status": "success", "message": "Words saved successfully!"})
 
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)})
-
+        logging.exception("Error while saving word")
 
 @app.route('/saved_words', methods=['GET', 'POST'])
 @login_required
@@ -379,16 +415,14 @@ def VocabularyPage():
         if user_id is None:
             raise ValueError("User ID not found in session")
 
-        logging.debug(f"Fetching vocabulary pages for user {user_id}")
 
         pages = db.execute(text('SELECT * FROM VocabularyPage WHERE user_id = :user_id'), {"user_id": user_id}).fetchall()
-        logging.debug(f"Pages: {pages}")
 
         return render_template('VocabularyPage.html', pages=pages)
     except Exception as e:
         return render_template("error.html", message=str(e))
     
-#RECOMMAND
+# RECOMMEND
 @app.route('/recommend/<int:page_id>', methods=['GET'])
 @login_required
 def recommend(page_id):
@@ -484,6 +518,7 @@ def save_suggestions(page_id):
 @login_required
 def view_page(page_id):
     user_id = session.get("user_id")
+    session['page_id'] = page_id
     try:
         page = db.execute(
             text('SELECT * FROM VocabularyPage WHERE page_id = :page_id AND user_id = :user_id'),
@@ -524,22 +559,20 @@ def view_page(page_id):
         return render_template('view_page.html', page=page, words=words)
     except Exception as e:
         return render_template("error.html", message=str(e))
-    
-# FLASHCARD 
-    
+
 @app.route('/flashcard', methods=['GET'])
 def flashcard():
+    user_id = session.get("user_id")
+    page_id = request.args.get('page_id')
+    
+    if not user_id or not page_id:
+        return "User ID or Page ID not found in session", 400
     try:    
-        # if 'email' in session:
-        #     flashcard = db.execute(text('''
-        #         SELECT LearningProgress.*, Vocabulary.pronunciation, Vocabulary.meaning 
-        #         FROM LearningProgress 
-        #         JOIN Vocabulary ON LearningProgress.word_id = Vocabulary.word_id 
-        #         ORDER BY RANDOM() 
-        #         LIMIT 1
-        #     ''')).fetchone()
-        # else:
-        flashcard = db.execute(text("SELECT * FROM Vocabulary ORDER BY RANDOM() LIMIT 1")).fetchone()
+        flashcard = db.execute(
+            text('SELECT * FROM Vocabulary WHERE word_id IN (SELECT word_id FROM LearningProgress WHERE page_id = :page_id AND user_id = :user_id) ORDER BY RANDOM() LIMIT 1'),
+            {"page_id": page_id, "user_id": user_id}
+        ).fetchone()
+
     except Exception as e:
         return render_template("error.html", message=str(e))
 
@@ -549,16 +582,28 @@ def flashcard():
 
 @app.route('/quiz', methods=['GET', 'POST'])
 def quiz():
-    session.setdefault('score', 0)
-    session.setdefault('question_number', 0)
+    user_id = session.get("user_id")
+    page_id = session.get("page_id")
+
+    if not user_id or not page_id:
+        return "User ID or Page ID not found in session", 400
 
     if request.method == 'POST':
-        quiz_type = request.form.get('quiz_type')
-        if quiz_type in ['fill_in_the_blanks', 'word_to_meaning', 'meaning_to_word' , 'flashcard']:
-            return redirect(url_for(quiz_type))
+        session.pop('_flashes', None)
 
+        selected_quizzes = []
+        for quiz_type, count in quiz_questions_count.items():
+            selected_quizzes.extend([quiz_type] * count)
+
+        random.shuffle(selected_quizzes)
+        session['selected_quizzes'] = selected_quizzes
+        session['score'] = 0
+        session['question_number'] = 0
+        session['total_questions'] = len(selected_quizzes)
+        session['asked_questions'] = []
+
+        return redirect(url_for('next_question'))
     return render_template('quiz.html')
-
 
 @app.route('/word_to_meaning', methods=['GET', 'POST'])
 def word_to_meaning():
@@ -568,18 +613,57 @@ def word_to_meaning():
 def meaning_to_word():
     return quiz_route('meaning', 'word')
 
+@app.route('/fill_in_the_blanks', methods=['GET', 'POST'])
+def fill_in_the_blanks():
+    question_number = session.setdefault('question_number', 0)
+    total_questions = session.get('total_questions', 10)
+
+    if request.method == 'POST':
+        user_answer = request.form.get('user_answer')
+        correct_word = request.form.get('correct_word')
+
+        if request.form.get('action') == 'submit':
+            if user_answer.lower() == correct_word.lower():
+                flash("Correct!", "success")
+                session['score'] += 1
+            else:
+                flash(f"Incorrect. The correct word is: {correct_word}", "danger")
+        session['question_number'] += 1 
+        return redirect(url_for('next_question'))
+
+    question = get_random_question()
+    if question is None:
+        return render_template("error.html", message="No vocabulary found")
+
+    meaning = question.meaning
+    correct_word = question.word
+
+    return render_template('fill_in_the_blanks.html', meaning=meaning, correct_word=correct_word, question_number=question_number)
+
 def quiz_route(question_col, answer_col):
-    session.setdefault('score', 0)
-    session.setdefault('question_number', 0)
+    question_number = session.setdefault('question_number', 0)
+    total_questions = session.get('total_questions', 10)
 
     if request.method == 'POST':
         user_choice = request.form.get('user_choice')
         correct_answer = request.form.get('correct_answer')
         start_time = session.get('start_time')
 
-        process_multiple_choice(user_choice, correct_answer, start_time)
-        if session['question_number'] >= 10:
-            return render_template("finished.html", score=session['score'])
+        if request.form.get('action') == 'submit':
+                end_time = datetime.now()
+                time_diff = (end_time - start_time).total_seconds()
+                
+                if user_choice == correct_answer:
+                    if time_diff <= 5:
+                        session['score'] += 0.72
+                    else:
+                        session['score'] += 0.12
+                    flash(f"Correct!", "success")
+                else:
+                    flash(f"Incorrect. The correct answer is: {correct_answer}", "danger")
+    
+                    session['question_number'] += 1
+        return redirect(url_for('next_question'))
 
     session['start_time'] = datetime.now()
     question = get_random_question()
@@ -591,44 +675,23 @@ def quiz_route(question_col, answer_col):
 
     choices = get_random_choices(correct_answer, answer_col)
     choices.append(correct_answer)
+    random.shuffle(choices)
 
-    return render_question(question_text, correct_answer, choices)
+    return render_template('multiple_choice.html', question_text=question_text, choices=choices, correct_answer=correct_answer, question_number=question_number)
 
-@app.route('/fill_in_the_blanks', methods=['GET', 'POST'])
-def fill_in_the_blanks():
-    session.setdefault('score', 0)
-    session.setdefault('question_number', 0)
 
-    if request.method == 'POST':
-        user_answer = request.form.get('user_answer')
-        correct_word = request.form.get('correct_word')
-        question_number = int(request.form.get('question_number', 0))
 
-        if user_answer.lower() == correct_word.lower():
-            flash("Correct!", "success")
-            session['score'] += 1
-        else:
-            flash(f"Incorrect. The correct word is: {correct_word}", "danger")
-
-        session['question_number'] = question_number + 1
-        if session['question_number'] >= 10:
-            return render_template("finished.html", score=session['score'])
-
-        return redirect(url_for('fill_in_the_blanks'))
-
-    question = get_random_question()
-    if question is None:
-        return render_template("error.html", message="No vocabulary found")
-
-    meaning = question.meaning
-    correct_word = question.word
-
-    return render_template('fill_in_the_blanks.html', meaning=meaning, correct_word=correct_word, question_number=session['question_number'])
-
-@app.route('/next', methods=['POST'])
+@app.route('/next_question', methods=['GET', 'POST'])
 def next_question():
-    session['question_number'] += 1
-    return redirect(url_for('multiple_choice'))
+    selected_quizzes = session.get('selected_quizzes', [])
+    question_number = session.get('question_number', 0)
+
+    if question_number >= len(selected_quizzes):
+        return render_template("finished.html", score=session['score'])
+    session['question_number'] += 1 
+    next_quiz_type = selected_quizzes[question_number]
+
+    return redirect(url_for(next_quiz_type))
 
 @app.route('/restart_quiz')
 def restart_quiz():
@@ -640,29 +703,42 @@ def restart_quiz():
 def view_session():
     session_data = {key: session[key] for key in session.keys()}
     session.pop('score', None)
+    session.pop('question_number' , None)
+    session.pop('selected_quizzes', None)
     session.pop('question_number', None)
+    session.pop('total_questions', None)
+    session.pop('asked_questions', None)
     return jsonify(session_data)
 
 # MATCHING GAME
-@app.route('/matching_game')
-@login_required
+@app.route('/matching_game', methods=['GET', 'POST'])
 def matching_game():
     user_id = session.get("user_id")
-    page_id = request.args.get('page_id')
+    page_id = session.get('page_id')
 
     if not page_id:
         flash("Page ID is required.")
-        return redirect(url_for('VocabularyPage'))
-
+        return redirect(url_for('view_page', page_id=page_id))
     try:
         words = db.execute(
-            text('SELECT * FROM Vocabulary WHERE word_id IN (SELECT word_id FROM LearningProgress WHERE page_id = :page_id AND user_id = :user_id) ORDER BY RANDOM() LIMIT 5'),
+            text('''
+                SELECT * 
+                FROM Vocabulary 
+                WHERE word_id IN (
+                    SELECT word_id 
+                    FROM LearningProgress 
+                    WHERE page_id = :page_id 
+                    AND user_id = :user_id
+                ) 
+                ORDER BY RANDOM() 
+                LIMIT 5
+            '''),
             {"page_id": page_id, "user_id": user_id}
         ).fetchall()
 
         if not words:
             flash("No words found in the selected vocabulary page. Please add words before playing the game.")
-            return redirect(url_for('VocabularyPage'))
+            return redirect(url_for('view_page', page_id=page_id))
 
         meanings = [word.meaning for word in words]
         random.shuffle(meanings)
@@ -670,11 +746,11 @@ def matching_game():
         return render_template('matching_game.html', words=words, meanings=meanings, page_id=page_id)
     except Exception as e:
         flash("An error occurred while fetching words for the matching game. Please try again.")
-        return redirect(url_for('VocabularyPage'))
+        return redirect(url_for('view_page', page_id=page_id))
+
 
 
 @app.route('/check_matching_answers', methods=['POST'])
-@login_required
 def check_matching_answers():
     try:
         data = request.get_json()
@@ -687,7 +763,7 @@ def check_matching_answers():
         if not results or not page_id:
             raise ValueError("Missing results or page_id in the request data.")
 
-        user_id = session.get('user_id')
+        
         word_ids = [item['word_id'] for item in results]
 
         correct_answers = db.execute(
@@ -705,14 +781,12 @@ def check_matching_answers():
 
             if user_answer == correct_answer:
                 user_correct_answers[word_id] = user_answer
-
         return jsonify({"status": "success", "correct_answers": user_correct_answers, "message": "Answers have been checked successfully.", "page_id": page_id})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)})
 
     
 @app.route('/update_points_matching_game', methods=['POST'])
-@login_required
 def update_points_matching_game():
     data = request.get_json()
     user_id = session.get('user_id')

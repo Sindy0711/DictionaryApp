@@ -227,12 +227,10 @@
                     .then(response => response.json())
                     .then(updateData => {
                         console.log("Points update response:", updateData);
-                        // Disable further changes
                         document.querySelectorAll('.meaning').forEach(item => {
                             item.setAttribute('draggable', false);
                         });
         
-                        // Set a timeout to redirect after 30 seconds
                         setTimeout(() => {
                             window.location.href = "/VocabularyPage";
                         }, 30000); // 30 seconds

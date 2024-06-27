@@ -26,7 +26,7 @@
                             document.addEventListener('DOMContentLoaded', function() {
                                 var ctx = document.getElementById('scoreChart-{{ loop.index }}').getContext('2d');
                                 var chart = new Chart(ctx, {
-                                    type: 'doughnut',
+                                    type: 'pie',
                                     data: {
                                         datasets: [{
                                             data: [{{ word.percentage }}, 100 - {{ word.percentage }}],
@@ -61,6 +61,7 @@
             <button type="button" class="btn btn-warning" onclick="location.href='{{ url_for('recommend', page_id=page.page_id) }}'">Recommend</button>
             <button type="button" class="btn btn-danger" onclick="location.href='{{ url_for('delete_words', page_id=page.page_id) }}'">Delete Words</button>
             <a href="{{ url_for('VocabularyPage') }}" class="btn btn-primary">Back to Pages</a>
+            <a href="{{ url_for('quiz')}}">Quiz</a>
         </div>
     </div>
 </div>
