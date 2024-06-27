@@ -794,9 +794,6 @@ def update_points_matching_game():
         page_id = data.get('page_id')
         time_left = data.get('time_left')  # Lấy thời gian còn lại
 
-        print(f"Received page_id: {page_id}")  # In ra để kiểm tra giá trị page_id
-        print(f"Time left: {time_left}")  # In ra để kiểm tra thời gian còn lại
-
         if not isinstance(page_id, int):
             page_id = int(page_id)  # Chuyển đổi page_id thành số nguyên nếu cần
 
