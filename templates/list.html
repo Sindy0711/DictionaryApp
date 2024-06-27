@@ -1,14 +1,13 @@
-
 {% extends "layout.html" %} 
 
 {% block title %}List{% endblock %} 
 
 {% block content %}
-<div class="container">
-  <div class="row">
-    <div class="col-md-6 mt-5">
+<div class="container custom-list-container">
+  <div class="row custom-list-row">
+    <div class="col-md-6 mt-5 custom-list-col">
       {% if result %}
-      <table class="table list">
+      <table class="table custom-list-table">
         <thead>
           <tr>
             <th scope="col">Word</th>
@@ -22,20 +21,24 @@
             <td>{{ item.word }}</td>
             <td>{{ item.pronunciation }}</td>
             <td>{{ item.meaning }}</td>
-        </tr>
+          </tr>
           {% endfor %}
         </tbody>
       </table>
       {% else %}
-      <p>No result is found</p>
-      {% endif %} 
+      <p class="custom-list-no-result">No result is found</p>
+      {% endif %}
       {% if pagination %}
-      <div class="row">
-        <div class="col">{{ pagination.links }}</div>
+      <div class="row custom-list-pagination-row">
+        <div class="col custom-list-pagination-col">{{ pagination.links }}</div>
       </div>
       {% endif %}
     </div>
   </div>
+  <div class="row">
+    <div class="col text-right">
+      <a href="{{ url_for('index') }}" class="btn btn-primary mb-3 float-right">Back to Pages</a>
+    </div>
+  </div>
 </div>
-
 {% endblock %}
