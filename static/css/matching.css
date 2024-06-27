@@ -1,32 +1,31 @@
-.matching-body {
+body {
     font-family: Arial, sans-serif;
-    background-color: #f4f4f4;
 }
 
-.matching-title {
+h1 {
     margin-top: 20px;
-    text-align: center;
 }
 
-.matching-wrapper {
+.game-wrapper {
     width: 80%;
-    margin: 20px auto;
+    margin-top: 20px;
     background-color: #fff;
     padding: 20px;
     border-radius: 10px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-.matching-container {
+.game-container {
     display: flex;
     justify-content: space-between;
 }
 
-.matching-words-container, .matching-meanings-container {
+.words-container, .meanings-container {
     width: 45%;
 }
 
-.matching-words, .matching-meanings {
+
+.words, .meanings {
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -37,7 +36,7 @@
     background-color: #f9f9f9;
 }
 
-.matching-word, .matching-meaning {
+.word, .meaning {
     background-color: #ffffff;
     border: 1px solid #ccc;
     padding: 10px;
@@ -46,50 +45,26 @@
     cursor: pointer;
 }
 
-.matching-correct {
+.word.correct {
     background-color: #d4edda; /* green */
     border-color: #c3e6cb;
 }
 
-.matching-incorrect {
+.word.incorrect {
     background-color: #f8d7da; /* red */
     border-color: #f5c6cb;
 }
 
-#matching-checkAnswers, .btn-success {
+#checkAnswers {
+    margin-top: 20px;
     padding: 10px 20px;
-    border-radius: 5px;
     border: none;
+    background-color: #4CAF50;
     color: white;
+    border-radius: 5px;
     cursor: pointer;
 }
 
-#matching-checkAnswers {
-    background-color: #4CAF50;
-}
-
-#matching-checkAnswers:hover {
+#checkAnswers:hover {
     background-color: #45a049;
-}
-
-.btn-success {
-    background-color: #28a745;
-    text-decoration: none;
-}
-
-.btn-success:hover {
-    background-color: #218838;
-}
-
-#matching-timer {
-    font-size: 20px;
-    margin-bottom: 20px;
-    text-align: center;
-}
-
-.matching-float-right {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 20px;
 }

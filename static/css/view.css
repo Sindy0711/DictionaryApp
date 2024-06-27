@@ -1,4 +1,4 @@
-.view-page {
+.view-page body {
     font-family: Arial, sans-serif;
 }
 
@@ -33,7 +33,6 @@
 .view-page .header .cell {
     background-color: #f4f4f4;
     font-weight: bold;
-    text-align: center;
 }
 
 .view-page .row:nth-child(even) .cell {
@@ -61,72 +60,10 @@
     background-color: #0056b3;
 }
 
-.view-page .btn-warning {
-    background-color: #ff9800;
-}
-
-.view-page .btn-warning:hover {
-    background-color: #e68900;
-}
-
-.view-page .btn-danger {
-    background-color: #f44336;
-}
-
-.view-page .btn-danger:hover {
-    background-color: #d32f2f;
-}
-
-.view-page .btn-success {
-    background-color: #4CAF50;
-}
-
-.view-page .btn-success:hover {
-    background-color: #388E3C;
-}
-
+/* New class for wrapping the title and table */
 .view-page .content-wrapper {
     border: 2px solid #ddd;
     padding: 20px;
     border-radius: 10px;
     background-color: #fff;
-    position: relative;
-    padding-bottom: 80px;
-}
-
-.view-page .table .cell:nth-child(1) {
-    width: 20%;
-    text-align: center;
-    vertical-align: middle;
-}
-
-.view-page .table .cell:nth-child(2) {
-    width: 15%;
-    text-align: center;
-    vertical-align: middle;
-}
-
-.view-page .table .cell:nth-child(3) {
-    width: 45%;
-    vertical-align: middle;
-}
-
-.view-page .table .cell:nth-child(4) {
-    align-items: center;
-    width: 20%;
-}
-
-.view-page .cell canvas {
-    margin: auto;
-    display: block;
-}
-
-.view-page .button-container {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    position: absolute;
-    bottom: 20px;
-    right: 20px;
-    width: calc(100% -40px); 
 }
