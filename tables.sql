@@ -32,7 +32,8 @@ CREATE TABLE VocabularyPage (
 CREATE TABLE LearningProgress (
     page_id INT,
     word_id INT,
-    score INT NOT NULL,
+    user_id INT,
+    score FLOAT NOT NULL,
     study_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_study_date TIMESTAMP,
     PRIMARY KEY (page_id, word_id),

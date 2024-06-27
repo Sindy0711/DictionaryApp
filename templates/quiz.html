@@ -6,30 +6,12 @@
     <div class="col-md-6">
       <div class="card shadow">
         <div class="card-header bg-primary text-white text-center">
-          <h2>Choose Quiz Type</h2>
+          <h2> Quiz </h2>
         </div>
         <div class="card-body">
           <form action="{{ url_for('quiz') }}" method="POST">
-            <div class="form-group text-center">
-              <label>Select Quiz Type:</label><br>
-              <div class="form-check form-check-inline">
-                <input class="form-check-input" type="radio" name="quiz_type" id="fill_in_the_blanks" value="fill_in_the_blanks">
-                <label class="form-check-label" for="fill_in_the_blanks">Fill in the Blanks</label>
-              </div>
-              <div class="form-check form-check-inline">
-                <input class="form-check-input" type="radio" name="quiz_type" id="word_to_meaning" value="word_to_meaning">
-                <label class="form-check-label" for="word_to_meaning">Word to meaning</label>
-              </div>
-              <div class="form-check form-check-inline">
-                <input class="form-check-input" type="radio" name="quiz_type" id="meaning_to_word" value="meaning_to_word">
-                <label class="form-check-label" for="meaning_to_word">Meaning to word</label>
-              </div>
-              <div class="form-check form-check-inline">
-                <input class="form-check-input" type="radio" name="quiz_type" id="flashcard" value="flashcard">
-                <label class="form-check-label" for="meaning_to_word">Flashcard</label>
-              </div>
-            </div>
             <div class="text-center">
+              <div class="title">This quiz will contain four different types of lessons.</div>
               <button type="submit" class="btn btn-primary">Start Quiz</button>
             </div>
           </form>
