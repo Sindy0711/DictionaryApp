@@ -7,10 +7,6 @@ body {
   font-family: Arial, sans-serif;
 }
 
-/* .btn {
-  margin-top: 18px;
-} */
-
 /*  */
 .flashcard {
   --bg: #f7f7f8;
@@ -67,8 +63,7 @@ body {
 }
 
 /* ======== form ========= */
-.register-form,
-.login-form {
+.form {
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -81,7 +76,7 @@ body {
   border: 1px solid #333;
 }
 
-.title {
+.title-card {
   font-size: 28px;
   font-weight: 600;
   letter-spacing: -1px;
@@ -92,19 +87,19 @@ body {
   color: #00bfff;
 }
 
-.title::before {
+.title-card::before {
   width: 18px;
   height: 18px;
 }
 
-.title::after {
+.title-card::after {
   width: 18px;
   height: 18px;
   animation: pulse 1s linear infinite;
 }
 
-.title::before,
-.title::after {
+.title-card::before,
+.title-card::after {
   position: absolute;
   content: "";
   height: 16px;
@@ -138,11 +133,11 @@ body {
   gap: 6px;
 }
 
-.register-form label {
+.form label {
   position: relative;
 }
 
-.register-form label .input {
+.form label .input {
   background-color: #333;
   color: #fff;
   width: 100%;
@@ -152,7 +147,7 @@ body {
   border-radius: 10px;
 }
 
-.register-form label .input + span {
+.form label .input + span {
   color: rgba(255, 255, 255, 0.5);
   position: absolute;
   left: 10px;
@@ -162,13 +157,13 @@ body {
   transition: 0.3s ease;
 }
 
-.register-form label .input:placeholder-shown + span {
+.form label .input:placeholder-shown + span {
   top: 12.5px;
   font-size: 0.9em;
 }
 
-.register-form label .input:focus + span,
-.register-form label .input:valid + span {
+.form label .input:focus + span,
+.form label .input:valid + span {
   color: #00bfff;
   top: 0px;
   font-size: 0.7em;

@@ -28,8 +28,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
           const data = await response.json();
           if (data.status === "success") {
-              alert("Page created successfully!");
-              window.location.reload();
+              window.location.href = `/view_page/${data.page_id}`;
           } else {
               alert(`Error: ${data.message}`);
           }
