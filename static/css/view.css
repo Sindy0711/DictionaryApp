@@ -33,7 +33,7 @@
 .view-page .header .cell {
     background-color: #f4f4f4;
     font-weight: bold;
-    text-align: center; /* Center the header text for all columns */
+    text-align: center;
 }
 
 .view-page .row:nth-child(even) .cell {
@@ -61,47 +61,64 @@
     background-color: #0056b3;
 }
 
+.view-page .btn-warning {
+    background-color: #ff9800;
+}
+
+.view-page .btn-warning:hover {
+    background-color: #e68900;
+}
+
+.view-page .btn-danger {
+    background-color: #f44336;
+}
+
+.view-page .btn-danger:hover {
+    background-color: #d32f2f;
+}
+
+.view-page .btn-success {
+    background-color: #4CAF50;
+}
+
+.view-page .btn-success:hover {
+    background-color: #388E3C;
+}
+
 .view-page .content-wrapper {
     border: 2px solid #ddd;
     padding: 20px;
     border-radius: 10px;
     background-color: #fff;
     position: relative;
-    padding-bottom: 80px; /* Thêm khoảng trống để chứa nút */
+    padding-bottom: 80px;
 }
 
 .view-page .table .cell:nth-child(1) {
-    width: 20%; /* Adjusted narrower width for Word column */
+    width: 20%;
     text-align: center;
     vertical-align: middle;
 }
 
 .view-page .table .cell:nth-child(2) {
-    width: 15%; /* Width for Pronunciation column */
+    width: 15%;
     text-align: center;
     vertical-align: middle;
 }
 
 .view-page .table .cell:nth-child(3) {
-    width: 45%; /* Adjusted wider width for Meaning column */
+    width: 45%;
     vertical-align: middle;
 }
 
 .view-page .table .cell:nth-child(4) {
     align-items: center;
-    width: 20%; /* Width for Progress column */
+    width: 20%;
 }
 
 .view-page .cell canvas {
     margin: auto;
     display: block;
-}
-
-/* Ensure the progress circle is centered */
-.view-page .cell canvas {
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
 }
 
 .view-page .button-container {
