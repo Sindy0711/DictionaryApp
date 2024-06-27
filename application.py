@@ -672,7 +672,6 @@ def matching_game():
         flash("An error occurred while fetching words for the matching game. Please try again.")
         return redirect(url_for('VocabularyPage'))
 
-
 @app.route('/check_matching_answers', methods=['POST'])
 @login_required
 def check_matching_answers():
@@ -710,7 +709,6 @@ def check_matching_answers():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)})
 
-    
 @app.route('/update_points_matching_game', methods=['POST'])
 @login_required
 def update_points_matching_game():
@@ -718,12 +716,28 @@ def update_points_matching_game():
     user_id = session.get('user_id')
 
     try:
-        points_per_correct = data.get('points_per_correct')
         correct_answers = data.get('correct_answers')
         page_id = data.get('page_id')
+        time_left = data.get('time_left')  # Lấy thời gian còn lại
+
+        print(f"Received page_id: {page_id}")  # In ra để kiểm tra giá trị page_id
+        print(f"Time left: {time_left}")  # In ra để kiểm tra thời gian còn lại
+
+        if not isinstance(page_id, int):
+            page_id = int(page_id)  # Chuyển đổi page_id thành số nguyên nếu cần
+
+        points_per_correct = 0  # Giá trị mặc định
+
+        if 31 <= time_left <= 60:
+            points_per_correct = 0.82
+        elif 0 <= time_left <= 30:
+            points_per_correct = 0.75
+
+        if points_per_correct == 0:
+            raise ValueError("Time left out of valid range.")
 
         # Update score in LearningProgress table
-        for word_id in correct_answers.keys():
+        for word_id, meaning in correct_answers.items():
             db.execute(
                 text('''
                     UPDATE LearningProgress
@@ -739,9 +753,12 @@ def update_points_matching_game():
             )
 
         db.commit()
+        flash(f"Correct! You earned {points_per_correct} points for each correct answer.", "success")
         return jsonify({"status": "success", "message": "Points have been successfully updated."})
     except Exception as e:
+        flash(f"An error occurred: {str(e)}", "danger")
         return jsonify({"status": "error", "message": str(e)})
-    
+
+
 if __name__ == "__main__":
     app.run(debug=True)

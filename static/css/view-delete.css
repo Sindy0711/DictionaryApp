@@ -1,0 +1,108 @@
+.delete-page .container {
+    width: 80%;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.delete-page h2 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.delete-page .delete-table {
+    display: table;
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.delete-page .delete-row {
+    display: table-row;
+}
+
+.delete-page .delete-cell {
+    display: table-cell;
+    padding: 10px;
+    border: 1px solid #ddd;
+}
+
+.delete-page .delete-header .delete-cell {
+    background-color: #f4f4f4;
+    font-weight: bold;
+    text-align: center; /* Center the header text for all columns */
+}
+
+.delete-page .delete-row:nth-child(even) .delete-cell {
+    background-color: #f9f9f9;
+}
+
+.delete-page .delete-row:hover .delete-cell {
+    background-color: #f1f1f1;
+}
+
+.delete-page .delete-btn {
+    display: inline-block;
+    padding: 10px 20px;
+    font-size: 16px;
+    color: #fff;
+    background-color: #007bff;
+    border: none;
+    border-radius: 5px;
+    text-align: center;
+    text-decoration: none;
+    margin-top: 20px;
+}
+
+.delete-page .delete-btn:hover {
+    background-color: #0056b3;
+}
+
+.delete-page .delete-submit-btn {
+    background-color: #dc3545; /* Màu đỏ cho nút Delete */
+}
+
+.delete-page .delete-submit-btn:hover {
+    background-color: #c82333; /* Màu đỏ khi hover */
+}
+
+.delete-page .delete-content-wrapper {
+    border: 2px solid #ddd;
+    padding: 20px;
+    border-radius: 10px;
+    background-color: #fff;
+    position: relative;
+}
+
+.delete-page .delete-table .delete-cell:nth-child(1) {
+    width: 20%; /* Adjusted narrower width for Word column */
+    text-align: center;
+    vertical-align: middle;
+}
+
+.delete-page .delete-table .delete-cell:nth-child(2) {
+    width: 15%; /* Width for Pronunciation column */
+    text-align: center;
+    vertical-align: middle;
+}
+
+.delete-page .delete-table .delete-cell:nth-child(3) {
+    width: 45%; /* Adjusted wider width for Meaning column */
+    vertical-align: middle;
+}
+
+.delete-page .delete-table .delete-cell:nth-child(4) {
+    align-items: center;
+    width: 20%; /* Width for Progress column */
+    text-align: center; /* Center align the checkbox */
+    vertical-align: middle; /* Vertically align the checkbox */
+}
+
+.delete-page .delete-cell input[type="checkbox"] {
+    transform: scale(1.5); /* Optional: Increase the size of the checkbox */
+}
+
+.delete-page .delete-button-container {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}

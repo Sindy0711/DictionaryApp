@@ -5,6 +5,7 @@
 
 .matching-title {
     margin-top: 20px;
+    text-align: center;
 }
 
 .matching-wrapper {
@@ -55,39 +56,40 @@
     border-color: #f5c6cb;
 }
 
-#matching-checkAnswers {
-    margin-top: 20px;
+#matching-checkAnswers, .btn-success {
     padding: 10px 20px;
-    border: none;
-    background-color: #4CAF50;
-    color: white;
     border-radius: 5px;
+    border: none;
+    color: white;
     cursor: pointer;
+}
+
+#matching-checkAnswers {
+    background-color: #4CAF50;
 }
 
 #matching-checkAnswers:hover {
     background-color: #45a049;
 }
 
+.btn-success {
+    background-color: #28a745;
+    text-decoration: none;
+}
+
+.btn-success:hover {
+    background-color: #218838;
+}
+
 #matching-timer {
     font-size: 20px;
     margin-bottom: 20px;
+    text-align: center;
 }
 
 .matching-float-right {
-    text-align: right;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
     margin-top: 20px;
-}
-
-.matching-float-right .btn-success {
-    margin-top: 10px;
-    text-decoration: none;
-    color: white;
-    background-color: #28a745;
-    padding: 10px 20px;
-    border-radius: 5px;
-}
-
-.matching-float-right .btn-success:hover {
-    background-color: #218838;
 }

@@ -3,7 +3,11 @@ document.addEventListener('DOMContentLoaded', function() {
     let draggedItem = null;
     let timeLeft = 60;
     const timerElement = document.getElementById('matching-timer');
-    const pageId = "{{ page_id }}"; // Lấy page_id từ template
+    
+    // Get page_id from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const pageId = urlParams.get('page_id');
+    const startTime = new Date().toISOString();
 
     const timerInterval = setInterval(() => {
         timeLeft--;
@@ -56,7 +60,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function checkAnswers() {
         const results = [];
         document.querySelectorAll('.matching-word').forEach((wordElem, index) => {
-            const wordId = parseInt(wordElem.dataset.id, 10);  // Ensure word_id is an integer
+            const wordId = parseInt(wordElem.dataset.id, 10);
             const meaningElem = document.querySelectorAll('.matching-meanings .matching-meaning')[index];
             if (meaningElem) {
                 const meaning = meaningElem.dataset.meaning;
@@ -78,7 +82,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log("Response from server:", data);
 
             document.querySelectorAll('.matching-word').forEach((wordElem, index) => {
-                const wordId = parseInt(wordElem.dataset.id, 10);  // Ensure word_id is an integer
+                const wordId = parseInt(wordElem.dataset.id, 10);
                 const meaningElem = document.querySelectorAll('.matching-meanings .matching-meaning')[index];
                 if (meaningElem) {
                     const correctMeaning = data.correct_answers[wordId];
@@ -96,28 +100,34 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
 
-            const pointsPerCorrectAnswer = timeLeft > 30 ? 0.82 : 0.75;
-            alert(`${data.message} You have earned ${pointsPerCorrectAnswer} points for each correct answer.`);
-
             fetch('/update_points_matching_game', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ points_per_correct: pointsPerCorrectAnswer, correct_answers: data.correct_answers, page_id: data.page_id })
+                body: JSON.stringify({ 
+                    correct_answers: data.correct_answers, 
+                    page_id: pageId, 
+                    time_left: timeLeft  // Gửi thời gian còn lại
+                })
             })
             .then(response => response.json())
             .then(updateData => {
                 console.log("Points update response:", updateData);
-                // Disable further changes
                 document.querySelectorAll('.matching-meaning').forEach(item => {
                     item.setAttribute('draggable', false);
                 });
+                
+                if (timeLeft >= 31 && timeLeft <= 60) {
+                    alert("You earned 0.82 points for each correct word!");
+                } else if (timeLeft >= 0 && timeLeft <= 30) {
+                    alert("You have earned 0.75 points for each correct word!");
+                }
 
-                // Set a timeout to redirect after 30 seconds
+
                 setTimeout(() => {
                     window.location.href = "/VocabularyPage";
-                }, 30000); // 30 seconds
+                }, 30000);
             })
             .catch(error => {
                 console.error("Error updating points:", error);
