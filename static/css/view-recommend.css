@@ -98,3 +98,55 @@
     gap: 10px;
     margin-top: 20px;
 }
+
+@media (max-width: 768px) {
+    .recommend-page .container {
+        width: 100%;
+        padding: 10px;
+    }
+
+    .recommend-page .recommend-content-wrapper {
+        padding: 10px;
+    }
+
+    .recommend-page .recommend-table {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .recommend-page .recommend-row {
+        display: flex;
+        flex-direction: row;
+        width: 100%;
+    }
+
+    .recommend-page .recommend-cell {
+        flex: 1;
+        padding: 5px;
+        border: 1px solid #ddd;
+        font-size: 10px; /* Decrease font size for mobile */
+        word-wrap: break-word; /* Ensure long words wrap to the next line */
+    }
+
+    .recommend-page .recommend-header .recommend-cell {
+        background-color: #f4f4f4;
+        font-weight: bold;
+        text-align: center;
+        font-size: 12px; /* Decrease header font size for mobile */
+    }
+
+    .recommend-page .recommend-cell input[type="checkbox"] {
+        transform: scale(1.2);
+    }
+
+    .recommend-page .recommend-btn {
+        width: 100%;
+        padding: 10px;
+        font-size: 12px;
+    }
+
+    .recommend-page .recommend-button-container {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}

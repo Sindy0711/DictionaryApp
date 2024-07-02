@@ -19,9 +19,9 @@
     flex-direction: column;
     margin-bottom: 15px;
     padding: 10px;
-    border: 1px solid #ddd; /* Viền nhạt hơn cho khung con */
+    border: 1px solid #ddd;
     border-radius: 5px;
-    background-color: #f9f9f9; /* Màu nền nhạt hơn cho khung con */
+    background-color: #f9f9f9;
 }
 
 .vcb-wrapper .btn {
@@ -80,13 +80,13 @@
 }
 
 .vcb-wrapper .border {
-    border: 1px solid #ccc; /* Viền nhạt hơn cho khung chính */
+    border: 1px solid #ccc;
     border-radius: 5px;
 }
 
 .vcb-wrapper .highlight-border {
-    border: 1px solid #bbb; /* Viền nhạt hơn cho khung danh sách từ vựng */
-    background-color: #f5f5f5; /* Màu nền nhạt hơn cho khung danh sách từ vựng */
+    border: 1px solid #bbb;
+    background-color: #f5f5f5;
 }
 
 .vcb-wrapper .text-center {
@@ -130,7 +130,38 @@
     margin-top: 20px;
 }
 
-
 .vcb-wrapper .form_create {
     margin-top: 80px;
+}
+
+@media (max-width: 768px) {
+    .vcb-wrapper .container {
+        width: 100%;
+        padding: 10px;
+    }
+
+    .vcb-wrapper ul#pages-list li {
+        flex-direction: column;
+    }
+
+    .vcb-wrapper .btn {
+        width: 100%;
+        margin-top: 10px;
+        font-size: 14px;
+        padding: 8px;
+    }
+
+    .vcb-wrapper .item-right {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .vcb-wrapper .float-right {
+        float: none;
+        text-align: center;
+    }
+
+    .vcb-wrapper .form_create {
+        margin-top: 20px;
+    }
 }

@@ -1,0 +1,119 @@
+.list_saved_word-container {
+    padding-top: 20px;
+}
+
+.list_saved_word-row {
+    justify-content: center;
+}
+
+.list_saved_word-col {
+    margin-top: 20px;
+}
+
+.list_saved_word-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+.list_saved_word-table th,
+.list_saved_word-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+}
+
+.list_saved_word-table th {
+    text-align: center; /* Căn giữa tiêu đề các cột */
+    padding-top: 12px;
+    padding-bottom: 12px;
+    background-color: #f2f2f2;
+    color: black;
+}
+
+.list_saved_word-no-result {
+    text-align: center;
+    font-size: 18px;
+    color: #777;
+}
+
+.list_saved_word-pagination-row {
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.list_saved_word-pagination-col {
+    display: flex;
+    justify-content: center;
+}
+
+.list_saved_word-container .list_saved_word-table th:nth-child(1),
+.list_saved_word-container .list_saved_word-table td:nth-child(1) {
+    width: 20%;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.list_saved_word-container .list_saved_word-table th:nth-child(2),
+.list_saved_word-container .list_saved_word-table td:nth-child(2) {
+    width: 15%;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.list_saved_word-container .list_saved_word-table th:nth-child(3),
+.list_saved_word-container .list_saved_word-table td:nth-child(3) {
+    width: 35%;
+    vertical-align: middle;
+}
+
+.list_saved_word-container .list_saved_word-table th:nth-child(4),
+.list_saved_word-container .list_saved_word-table td:nth-child(4) {
+    width: 10%;
+    vertical-align: middle;
+}
+
+@media (max-width: 768px) {
+    .list_saved_word-table,
+    .list_saved_word-table th,
+    .list_saved_word-table td {
+        display: block;
+        width: 100%;
+        font-size: 12px;
+    }
+    
+    .list_saved_word-table th {
+        text-align: left;
+    }
+    
+    .list_saved_word-table tr {
+        margin-bottom: 8px;
+    }
+    
+    .list_saved_word-table td {
+        text-align: left;
+        position: relative;
+        padding-left: 50%;
+        padding-right: 5px;
+    }
+    
+    .list_saved_word-table td::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 0;
+        width: 50%;
+        padding-left: 8px;
+        font-weight: bold;
+        text-align: left;
+    }
+    
+    #selected-words {
+        font-size: 12px;
+    }
+    
+    #save-words-btn,
+    #existing-page-form button[type="submit"] {
+        margin-top: 5px;
+        font-size: 12px;
+        padding: 4px 8px;
+    }
+}

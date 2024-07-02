@@ -1,11 +1,13 @@
 {% extends "layout.html" %}
+
 {% block title %}Add words to the page{% endblock %}
+
 {% block content %}
 <div class="container">
   <div class="row">
     <div class="col-md-6 mt-5">
       {% if result %}
-      <table class="table list">
+      <table class="table list_saved_word">
         <thead>
           <tr>
             <th scope="col">Word</th>
@@ -20,7 +22,7 @@
             <td>{{ item.word }}</td>
             <td>{{ item.pronunciation }}</td>
             <td>{{ item.meaning }}</td>
-            <td>
+            <td data-label="Select">
               <button class="btn btn-secondary btn-select" data-word="{{item.word}}" data-pronunciation="{{item.pronunciation}}" data-meaning="{{item.meaning}}" data-word_id="{{item.word_id}}">Add</button>
             </td>
           </tr>
@@ -39,10 +41,10 @@
 
     <div class="col-md-6 mt-5">
       <h4>Selected words (Maximum 10 words)</h4>
-      <div id="selected-words">
-        <!-- Các từ đã chọn sẽ hiển thị ở đây -->
+      <div id="selected-words" class="p-2 border rounded bg-light">
+        <!-- Selected words will be displayed here -->
       </div>
-      <button id="save-words-btn" class="btn btn-primary">Save words</button>
+      <button id="save-words-btn" class="btn btn-primary mt-2">Save words</button>
       <div id="select-page-form" style="display:none;">
         <h4>Select an existing vocabulary page</h4>
         <form id="existing-page-form">
@@ -50,10 +52,10 @@
             <label for="existing-page">Select page:</label>
             <select id="existing-page" class="form-control">
               <option value="">--Select page--</option>
-              <!-- Các trang sẽ được thêm động ở đây bằng JavaScript -->
+              <!-- Pages will be dynamically added here via JavaScript -->
             </select>
           </div>
-          <button type="submit" class="btn btn-success">Save to page</button>
+          <button type="submit" class="btn btn-success mt-2">Save to page</button>
         </form>
       </div>
     </div>

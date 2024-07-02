@@ -1,32 +1,70 @@
-.search-form-custom {
+.search-form-saved {
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-top: 20px; /* Điều chỉnh khoảng cách từ trên xuống */
+    margin-top: 20px;
 }
 
-.search-form-custom h2 {
-    margin-bottom: 20px; /* Khoảng cách giữa tiêu đề và ô tìm kiếm */
+.search-form-saved h2 {
+    margin-bottom: 20px;
     font-size: 24px;
-    color: #333; /* Màu chữ tùy chọn */
+    color: #333;
 }
 
-.search-form-custom .form-group {
+.search-form-saved .form-group {
     display: flex;
     justify-content: center;
     align-items: center;
 }
 
-.search-form-custom .form-control {
-    width: 300px; /* Chiều rộng của ô tìm kiếm */
-    margin-right: 10px; /* Khoảng cách giữa ô tìm kiếm và nút */
+.search-form-saved .form-control {
+    width: 300px;
+    margin-right: 10px;
 }
 
-.search-form-custom .btn {
-    background-color: #007bff; /* Màu nền của nút */
-    color: #fff; /* Màu chữ của nút */
+.search-form-saved .btn {
+    background-color: #007bff;
+    color: #fff;
 }
 
-.search-form-custom .btn:hover {
-    background-color: #0056b3; /* Màu nền của nút khi hover */
+.search-form-saved .btn:hover {
+    background-color: #0056b3;
+}
+
+@media (max-width: 768px) {
+    .search-form-saved {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-top: 20px;
+    }
+
+    .search-form-saved h2 {
+        margin-bottom: 20px;
+        font-size: 24px;
+        color: #333;
+        text-align: center; /* Đặt chữ nằm giữa màn hình */
+    }
+
+    .search-form-saved .form-group {
+        display: flex;
+        flex-direction: column; /* Chuyển đổi bố cục theo cột */
+        align-items: center;
+        width: 100%; /* Đảm bảo nhóm form chiếm hết chiều rộng */
+    }
+
+    .search-form-saved .form-control {
+        width: 90%; /* Đảm bảo ô tìm kiếm chiếm phần lớn chiều rộng */
+        margin-bottom: 10px; /* Thêm khoảng cách giữa ô tìm kiếm và nút */
+    }
+
+    .search-form-saved .btn {
+        width: 90%; /* Đặt chiều rộng cho nút để dễ quản lý */
+        background-color: #007bff;
+        color: #fff;
+    }
+
+    .search-form-saved .btn:hover {
+        background-color: #0056b3;
+    }
 }
