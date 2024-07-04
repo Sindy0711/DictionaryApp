@@ -2,35 +2,42 @@
 
 {% block title %} Login {% endblock %}
 
+{% block nav %}
+  
+{% endblock nav %}
+
 {% block content %}
 
-<div class="container">
-    <div class="row">
-        <div class="col-6">
-            <form action="/login" method="post" class="login-form form">
-                <p class="title-card">Login<p>
-                <div>
-                    <span>Username</span>
-                    <input name="username" class="form-control" placeholder="username" type="text" required>
-                </div> 
-                <div>
-                    <span>Email</span>
-                    <input name="email" class="form-control" placeholder="Email" type="email" required>
-                </div> 
-                <div>
-                    <span>Password</span>
-                    <input name="password" class="form-control" placeholder="******" type="password" required>
-                </div> 
-                <div>
-                </div> 
-                <div>
-                    <button type="submit" class="btn submit"> Log in  </button>
-                </div> 
-                <p class="text-center"><a href="{{url_for("register")}}" >Do not have an account ?</a></p>
-            </form>
+<div class="container-fluid">
+    <div class="row ">
+        <div class="col-6 p-0">
+            <div class="">
+                <div class="bg-illustration">
+                </div>
+            </div>
         </div>
-        </div>
-        <div class="col-6">
+        <div class="col-6 d-flex justify-content-center align-items-center">
+                <form action="/login" method="post" class="login-form form">
+                    <p class="title-card">Login<p>
+                    <div>
+                        <span>Username</span>
+                        <input name="username" class="form-control" placeholder="username" type="text" required>
+                    </div> 
+                    <div>
+                        <span>Email</span>
+                        <input name="email" class="form-control" placeholder="Email" type="email" required>
+                    </div> 
+                    <div>
+                        <span>Password</span>
+                        <input name="password" class="form-control" placeholder="******" type="password" required>
+                    </div> 
+                    <div>
+                    </div> 
+                    <div>
+                        <button type="submit" class="btn submit"> Log in  </button>
+                    </div> 
+                    <p class="text-center"><a href="{{url_for("register")}}" >Do not have an account ?</a></p>
+                </form>
         </div>
     </div>
 </div>

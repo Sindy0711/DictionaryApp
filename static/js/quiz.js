@@ -5,6 +5,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
   var timer = setInterval(function () {
     countdownElement.textContent = countdownSeconds + "s";
+    debugger;
+
     countdownSeconds--;
 
     if (countdownSeconds < 0) {
