@@ -1,6 +1,7 @@
 .matching-body {
     font-family: Arial, sans-serif;
-    background-color: #f4f4f4;
+    background-color: rgba(244, 244, 244, 0.5); /* Màu nền với độ trong suốt */
+    backdrop-filter: blur(10px);
 }
 
 .matching-title {
@@ -24,6 +25,8 @@
 
 .matching-words-container, .matching-meanings-container {
     width: 45%;
+    display: flex;
+    flex-direction: column;
 }
 
 .matching-words, .matching-meanings {
@@ -35,6 +38,7 @@
     padding: 10px;
     border-radius: 5px;
     background-color: #f9f9f9;
+    flex-grow: 1;
 }
 
 .matching-word, .matching-meaning {
@@ -44,6 +48,13 @@
     border-radius: 5px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     cursor: pointer;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    word-break: break-word;
+    flex-grow: 1;
 }
 
 .matching-correct {
