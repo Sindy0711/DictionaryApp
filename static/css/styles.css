@@ -1,13 +1,28 @@
+* {
+  box-sizing: border-box;
+}
+
 :root {
   --main-color: #383b4f;
 }
-/* Common  */
+html,
+body {
+  scroll-behavior: smooth;
+}
+/* html {
+  font-size: 62.5%;
+} */
 
 body {
-  font-family: Arial, sans-serif;
+  font-size: 1.6rem;
+  font-family: "Poppins", sans-serif;
 }
 
-/*  */
+a {
+  text-decoration: none;
+}
+/* =========== FLASHCARD ============= */
+
 .flashcard {
   --bg: #f7f7f8;
   --hover-bg: #bebfb0;
@@ -61,8 +76,6 @@ body {
 .flashcard:hover > strong {
   opacity: 0;
 }
-
-/* ======== form ========= */
 .form {
   display: flex;
   flex-direction: column;
@@ -207,6 +220,53 @@ table.table.\.list {
   }
 }
 
+.bg-illustration {
+  position: relative;
+  height: 100vh;
+  width: 100%;
+  background: url("https://i.ibb.co/RhMZprS/jony-Image2-1.png") no-repeat center
+    center scroll;
+  background-size: cover;
+  float: left;
+  -webkit-animation: bgslide 2.3s forwards;
+  animation: bgslide 2.3s forwards;
+}
+/* .bg-illustration img {
+  width: 248px;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  height: auto;
+  margin: 19px 0 0 25px;
+} */
+
+/* @-webkit-keyframes bgslide {
+  from {
+    left: -100%;
+    width: 0;
+    opacity: 0;
+  }
+  to {
+    left: -50%;
+    width: 1194px;
+    opacity: 1;
+  }
+}
+
+@keyframes bgslide {
+  from {
+    left: -100%;
+    width: 0;
+    opacity: 0;
+  }
+  to {
+    left: 0;
+    width: 100%;
+    opacity: 1;
+  }
+} */
+
 .search-form {
   margin-top: 50%;
 }
@@ -276,4 +336,139 @@ table.table.\.list {
 .custom-quiz #countdown {
   font-size: 3em;
   color: #dc3545;
+}
+
+/* ============== VIEW PAGE ============= */
+.view-page body {
+  font-family: Arial, sans-serif;
+}
+
+.view-page .container {
+  width: 80%;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.view-page h2 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.view-page .table {
+  display: table;
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.view-page .row {
+  display: table-row;
+}
+
+.view-page .cell {
+  display: table-cell;
+  padding: 10px;
+  border: 1px solid #ddd;
+  text-align: left;
+}
+
+.view-page .header .cell {
+  background-color: #f4f4f4;
+  font-weight: bold;
+}
+
+.view-page .row:nth-child(even) .cell {
+  background-color: #f9f9f9;
+}
+
+.view-page .row:hover .cell {
+  background-color: #f1f1f1;
+}
+
+.view-page .btn {
+  display: inline-block;
+  padding: 10px 20px;
+  margin-top: 20px;
+  font-size: 16px;
+  color: #fff;
+  background-color: #007bff;
+  border: none;
+  border-radius: 5px;
+  text-align: center;
+  text-decoration: none;
+}
+
+.view-page .btn:hover {
+  background-color: #0056b3;
+}
+
+.view-page .content-wrapper {
+  border: 2px solid #ddd;
+  padding: 20px;
+  border-radius: 10px;
+  background-color: #fff;
+}
+
+.game-wrapper {
+  width: 80%;
+  margin-top: 20px;
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.game-container {
+  display: flex;
+  justify-content: space-between;
+}
+
+.words-container,
+.meanings-container {
+  width: 45%;
+}
+
+.words,
+.meanings {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 200px;
+  border: 1px solid #ccc;
+  padding: 10px;
+  border-radius: 5px;
+  background-color: #f9f9f9;
+}
+
+.word,
+.meaning {
+  background-color: #ffffff;
+  border: 1px solid #ccc;
+  padding: 10px;
+  border-radius: 5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+}
+
+.word.correct {
+  background-color: #d4edda; /* green */
+  border-color: #c3e6cb;
+}
+
+.word.incorrect {
+  background-color: #f8d7da; /* red */
+  border-color: #f5c6cb;
+}
+
+#checkAnswers {
+  margin-top: 20px;
+  padding: 10px 20px;
+  border: none;
+  background-color: #4caf50;
+  color: white;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+#checkAnswers:hover {
+  background-color: #45a049;
 }
