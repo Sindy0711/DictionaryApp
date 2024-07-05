@@ -726,7 +726,6 @@ def matching_game():
     if not page_id:
         flash("Page ID is required.")
         return redirect(url_for('view_page', page_id=page_id))
-
     try:
         words = db.execute(
             text('''
@@ -752,10 +751,10 @@ def matching_game():
         random.shuffle(meanings)
 
         return render_template('matching_game.html', words=words, meanings=meanings, page_id=page_id)
-
     except Exception as e:
         flash("An error occurred while fetching words for the matching game. Please try again.")
         return redirect(url_for('view_page', page_id=page_id))
+
 
 @app.route('/check_matching_answers', methods=['POST'])
 def check_matching_answers():
@@ -770,6 +769,7 @@ def check_matching_answers():
         if not results or not page_id:
             raise ValueError("Missing results or page_id in the request data.")
 
+        
         word_ids = [item['word_id'] for item in results]
 
         correct_answers = db.execute(
@@ -787,30 +787,24 @@ def check_matching_answers():
 
             if user_answer == correct_answer:
                 user_correct_answers[word_id] = user_answer
-
         return jsonify({"status": "success", "correct_answers": user_correct_answers, "message": "Answers have been checked successfully.", "page_id": page_id})
-
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)})
 
 @app.route('/update_points_matching_game', methods=['POST'])
 def update_points_matching_game():
+    data = request.get_json()
+    user_id = session.get('user_id')
+
     try:
-        data = request.get_json()
-        user_id = session.get('user_id')
-
-        if not user_id:
-            raise ValueError("User ID is missing in session.")
-
-        points_per_correct = data.get('points_per_correct')
         correct_answers = data.get('correct_answers')
         page_id = data.get('page_id')
+        time_left = data.get('time_left')  # Lấy thời gian còn lại
 
-<<<<<<< HEAD
         if not isinstance(page_id, int):
-            page_id = int(page_id)  # Chuyển đổi page_id thành số nguyên nếu cần
+            page_id = int(page_id)
 
-        points_per_correct = 0  # Giá trị mặc định
+        points_per_correct = 0 
 
         if 31 <= time_left <= 60:
             points_per_correct = 0.82
@@ -822,12 +816,6 @@ def update_points_matching_game():
 
         # Update score in LearningProgress table
         for word_id, meaning in correct_answers.items():
-=======
-        if not points_per_correct or not correct_answers or not page_id:
-            raise ValueError("Invalid data provided.")
-
-        for word_id in correct_answers.keys():
->>>>>>> main
             db.execute(
                 text('''
                     UPDATE LearningProgress
@@ -843,10 +831,14 @@ def update_points_matching_game():
             )
 
         db.commit()
+        flash(f"Correct! You earned {points_per_correct} points for each correct answer.", "success")
         return jsonify({"status": "success", "message": "Points have been successfully updated."})
-
     except Exception as e:
+        flash(f"An error occurred: {str(e)}", "danger")
         return jsonify({"status": "error", "message": str(e)})
+
+
+
     
 if __name__ == "__main__":
     app.run(debug=True)
