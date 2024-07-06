@@ -1,0 +1,106 @@
+.matching-body {
+    font-family: Arial, sans-serif;
+    background-color: rgba(244, 244, 244, 0.5); /* Màu nền với độ trong suốt */
+    backdrop-filter: blur(10px);
+}
+
+.matching-title {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.matching-wrapper {
+    width: 80%;
+    margin: 20px auto;
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.matching-container {
+    display: flex;
+    justify-content: space-between;
+}
+
+.matching-words-container, .matching-meanings-container {
+    width: 45%;
+    display: flex;
+    flex-direction: column;
+}
+
+.matching-words, .matching-meanings {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 200px;
+    border: 1px solid #ccc;
+    padding: 10px;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+    flex-grow: 1;
+}
+
+.matching-word, .matching-meaning {
+    background-color: #ffffff;
+    border: 1px solid #ccc;
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    word-break: break-word;
+    flex-grow: 1;
+}
+
+.matching-correct {
+    background-color: #d4edda; /* green */
+    border-color: #c3e6cb;
+}
+
+.matching-incorrect {
+    background-color: #f8d7da; /* red */
+    border-color: #f5c6cb;
+}
+
+#matching-checkAnswers, .btn-success {
+    padding: 10px 20px;
+    border-radius: 5px;
+    border: none;
+    color: white;
+    cursor: pointer;
+}
+
+#matching-checkAnswers {
+    background-color: #4CAF50;
+}
+
+#matching-checkAnswers:hover {
+    background-color: #45a049;
+}
+
+.btn-success {
+    background-color: #28a745;
+    text-decoration: none;
+}
+
+.btn-success:hover {
+    background-color: #218838;
+}
+
+#matching-timer {
+    font-size: 20px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.matching-float-right {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}

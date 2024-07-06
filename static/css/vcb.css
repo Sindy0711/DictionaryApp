@@ -12,6 +12,7 @@
 .vcb-wrapper ul#pages-list {
     list-style-type: none;
     padding: 0;
+    overflow-y: auto; 
 }
 
 .vcb-wrapper ul#pages-list li {

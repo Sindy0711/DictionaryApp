@@ -1,17 +1,17 @@
-import random
-from random import shuffle
-import os , re , logging
+import os
+import re
+import logging
 from functools import wraps
-from sqlalchemy import create_engine, text
-from sqlalchemy.orm import scoped_session, sessionmaker
+from datetime import datetime
+import random
+
 from flask import Flask, jsonify, session, render_template, redirect, request, url_for, flash
 from flask_session import Session
 from flask_paginate import Pagination, get_page_parameter
 from dotenv import load_dotenv
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import scoped_session, sessionmaker
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
-import random
-from datetime import datetime
 
 load_dotenv()
 
@@ -37,8 +37,9 @@ quiz_questions_count = {
     'meaning_to_word': 2,
     'matching_game': 1
 }
+# Helper
 
-## Helper 
+
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -46,6 +47,7 @@ def login_required(f):
             return redirect(url_for("login"))
         return f(*args, **kwargs)
     return decorated_function
+
 
 def validate_password(password):
     if len(password) < 8:
@@ -58,22 +60,23 @@ def validate_password(password):
         return "The password must contain at least one special character"
     return None
 
+
 def get_random_question():
     try:
-        user_id , page_id = session.get("user_id") , session.get('page_id')
+        user_id, page_id = session.get("user_id"), session.get('page_id')
         asked_questions = session.get('asked_questions', [])
         
         if not user_id or not page_id:
             raise Exception("Page ID or User ID is missing")
-    
+
         if asked_questions:
             query = text('SELECT * FROM Vocabulary WHERE word_id IN '
-                         '(SELECT word_id FROM LearningProgress WHERE page_id = :page_id AND user_id = :user_id) '
+                         '(SELECT word_id FROM LearningProgress WHERE page_id=: page_id AND user_id = :user_id) '
                          'AND word_id NOT IN :asked_questions ORDER BY RANDOM() LIMIT 1')
-            params = {"page_id": page_id, "user_id": user_id, "asked_questions": tuple(asked_questions)}
+            params = {"page_id": page_id, "user_id": user_id, "asked_questions" :tuple(asked_questions)}
         else:
             query = text('SELECT * FROM Vocabulary WHERE word_id IN '
-                         '(SELECT word_id FROM LearningProgress WHERE page_id = :page_id AND user_id = :user_id) '
+                         '(SELECT word_id FROM LearningProgress WHERE page_id=:page_id AND user_id = :user_id) '
                          'ORDER BY RANDOM() LIMIT 1')
             params = {"page_id": page_id, "user_id": user_id}
 
@@ -89,12 +92,13 @@ def get_random_question():
         return question
     except Exception as e:
         logging.error(f"Error in get_random_question: {e}")
-        return render_template('view_page.html' , page_id = page_id )
+        return render_template('view_page.html', page_id=page_id)
+
 
 def get_random_choices(correct_answer,column):
     with engine.connect() as db:
         choices = db.execute(
-            text(f'SELECT {column} FROM Vocabulary WHERE {column} != :correct_answer ORDER BY RANDOM() LIMIT 3'),
+            text(f'SELECT {column} FROM Vocabulary WHERE {column} !=:correct_answer ORDER BY RANDOM() LIMIT 3'),
             {"correct_answer": correct_answer}
         ).fetchall()
         return [choice[0] for choice in choices]
@@ -111,7 +115,6 @@ def get_word_count_from_db(user_id, page_id):
     with engine.connect() as db:
         result = db.execute(query, params).scalar()
     return result
-
 def update_score_in_db(user_id, page_id, score):
     query = text('UPDATE LearningProgress SET score = score + :score WHERE page_id = :page_id AND user_id = :user_id')
     params = {"page_id": page_id, "user_id": user_id, "score": score}
@@ -288,15 +291,24 @@ def delete_vocabulary_page(page_id):
     try:
         user_id = session.get("user_id")
         logging.info(f"Deleting page_id: {page_id} for user_id: {user_id}")
+        
         with engine.connect() as db:
+            result = db.execute(text('SELECT page_name FROM VocabularyPage WHERE page_id = :page_id AND user_id = :user_id'),
+                                {"page_id": page_id, "user_id": user_id})
+            page_name = result.fetchone()[0] 
+
             db.execute(text('DELETE FROM LearningProgress WHERE page_id = :page_id AND user_id = :user_id'), {"page_id": page_id, "user_id": user_id})
             logging.info(f"Deleted from LearningProgress")
             db.execute(text('DELETE FROM VocabularyPage WHERE page_id = :page_id AND user_id = :user_id'), {"page_id": page_id, "user_id": user_id})
             logging.info(f"Deleted from VocabularyPage")
             db.commit()
-        return jsonify({"status": "success"})
+
+        return jsonify({"status": "success", "page_name": page_name})
+
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)})
+
+    
 
 @app.route('/api/get_vocabulary_pages', methods=['GET'])
 @login_required
