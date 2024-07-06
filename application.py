@@ -63,20 +63,21 @@ def validate_password(password):
 
 def get_random_question():
     try:
-        user_id, page_id = session.get("user_id"), session.get('page_id')
+        user_id = session.get("user_id")
+        page_id = session.get('page_id')
         asked_questions = session.get('asked_questions', [])
-        
+
         if not user_id or not page_id:
             raise Exception("Page ID or User ID is missing")
 
         if asked_questions:
             query = text('SELECT * FROM Vocabulary WHERE word_id IN '
-                         '(SELECT word_id FROM LearningProgress WHERE page_id=: page_id AND user_id = :user_id) '
+                         '(SELECT word_id FROM LearningProgress WHERE page_id=:page_id AND user_id=:user_id) '
                          'AND word_id NOT IN :asked_questions ORDER BY RANDOM() LIMIT 1')
-            params = {"page_id": page_id, "user_id": user_id, "asked_questions" :tuple(asked_questions)}
+            params = {"page_id": page_id, "user_id": user_id, "asked_questions": tuple(asked_questions)}
         else:
             query = text('SELECT * FROM Vocabulary WHERE word_id IN '
-                         '(SELECT word_id FROM LearningProgress WHERE page_id=:page_id AND user_id = :user_id) '
+                         '(SELECT word_id FROM LearningProgress WHERE page_id=:page_id AND user_id=:user_id) '
                          'ORDER BY RANDOM() LIMIT 1')
             params = {"page_id": page_id, "user_id": user_id}
 
@@ -85,14 +86,14 @@ def get_random_question():
 
         if not question:
             raise Exception("No random question found")
-        
+
         asked_questions.append(question.word_id)
         session['asked_questions'] = asked_questions
-        
+
         return question
     except Exception as e:
         logging.error(f"Error in get_random_question: {e}")
-        return render_template('view_page.html', page_id=page_id)
+        return None
 
 
 def get_random_choices(correct_answer,column):
@@ -293,10 +294,6 @@ def delete_vocabulary_page(page_id):
         logging.info(f"Deleting page_id: {page_id} for user_id: {user_id}")
         
         with engine.connect() as db:
-            result = db.execute(text('SELECT page_name FROM VocabularyPage WHERE page_id = :page_id AND user_id = :user_id'),
-                                {"page_id": page_id, "user_id": user_id})
-            page_name = result.fetchone()[0] 
-
             db.execute(text('DELETE FROM LearningProgress WHERE page_id = :page_id AND user_id = :user_id'), {"page_id": page_id, "user_id": user_id})
             logging.info(f"Deleted from LearningProgress")
             db.execute(text('DELETE FROM VocabularyPage WHERE page_id = :page_id AND user_id = :user_id'), {"page_id": page_id, "user_id": user_id})
@@ -436,8 +433,6 @@ def VocabularyPage():
 def recommend(page_id):
     try:
         user_id = session.get("user_id")
-        
-        # Step 1: Get the current page's name
         current_page = db.execute(
             text('SELECT page_name FROM VocabularyPage WHERE page_id = :page_id AND user_id = :user_id'),
             {"page_id": page_id, "user_id": user_id}
@@ -448,8 +443,7 @@ def recommend(page_id):
             return redirect(url_for('VocabularyPage'))
 
         page_name = current_page.page_name
-
-        # Step 2: Find other pages with the same name but different user_id
+        
         similar_pages = db.execute(
             text('SELECT page_id FROM VocabularyPage WHERE page_name = :page_name AND user_id != :user_id'),
             {"page_name": page_name, "user_id": user_id}
@@ -461,7 +455,6 @@ def recommend(page_id):
 
         similar_page_ids = [page.page_id for page in similar_pages]
 
-        # Step 3: Get words from these pages
         word_ids = db.execute(
             text('SELECT DISTINCT word_id FROM LearningProgress WHERE page_id IN :page_ids'),
             {"page_ids": tuple(similar_page_ids)}
@@ -473,7 +466,6 @@ def recommend(page_id):
 
         word_ids = [word.word_id for word in word_ids]
 
-        # Step 4: Fetch word details, excluding words already in the current page
         current_page_word_ids = db.execute(
             text('SELECT word_id FROM LearningProgress WHERE page_id = :page_id'),
             {"page_id": page_id}
@@ -487,7 +479,6 @@ def recommend(page_id):
             flash("No new words found.")
             return redirect(url_for('view_page', page_id=page_id))
 
-        # Limit to 10 words
         filtered_word_ids = filtered_word_ids[:10]
 
         suggested_words = db.execute(
@@ -618,9 +609,21 @@ def quiz():
 
     return render_template('quiz.html')
 
-@app.route('/word_to_meaning', methods=['GET', 'POST'])
 def word_to_meaning():
-    return quiz_route('word', 'meaning')
+    try:
+        question = get_random_question()
+
+        if not question:
+            return render_template('error.html', error_message="No question available.")
+        page = {
+            'page_name': 'Your Page Name',
+        }
+
+        return render_template('view_page.html', page=page, question=question)
+    
+    except Exception as e:
+        logging.error(f"Error in word_to_meaning: {e}")
+        return render_template('error.html', error_message="An error occurred.")
 
 @app.route('/meaning_to_word', methods=['GET', 'POST'])
 def meaning_to_word():
@@ -630,6 +633,8 @@ def meaning_to_word():
 def fill_in_the_blanks():
     question_number = session.setdefault('question_number', 0)
     total_questions = session.get('total_questions', 10)
+    user_id = session.get("user_id")
+    page_id = session.get("page_id")
 
     if request.method == 'POST':
         user_answer = request.form.get('user_answer')
@@ -639,17 +644,17 @@ def fill_in_the_blanks():
             if user_answer.lower() == correct_word.lower():
                 flash("Correct!", "success")
                 session['score'] += 1
-                update_score_in_db(session.get("user_id"), session.get("page_id"), 1)
+                update_score_in_db(user_id, page_id, 1)  # Đã sửa lại tham số ở đây
             else:
                 flash(f"Incorrect. The correct word is: {correct_word}", "danger")
             session['question_number'] += 1
 
         if session['question_number'] >= session['total_questions']:
-                    return render_template('view_page.html' , page_id = page_id )
+            return render_template('view_page.html', page_id=page_id)
         else:
             return redirect(url_for('next_question'))
 
-    question = get_random_question(session.get("user_id"), session.get("page_id"))
+    question = get_random_question()  # Không truyền thêm tham số ở đây
     if not question:
         return render_template("error.html", message="No vocabulary found")
 
@@ -706,11 +711,16 @@ def next_question():
     page_id = session.get("page_id")
 
     if question_number >= len(selected_quizzes):
-        return render_template('view_page.html' , page_id = page_id )
-    session['question_number'] += 1 
-    next_quiz_type = selected_quizzes[question_number]
+        page = engine.execute(
+            text('SELECT * FROM Pages WHERE page_id = :page_id'),
+            {"page_id": page_id}
+        ).fetchone()
+        return render_template('view_page.html', page=page)
 
+    next_quiz_type = selected_quizzes[question_number]
+    session['question_number'] += 1 
     return redirect(url_for(next_quiz_type))
+
 
 @app.route('/restart_quiz')
 def restart_quiz():
