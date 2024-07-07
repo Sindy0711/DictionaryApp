@@ -1,7 +1,6 @@
 import os , csv
 import re
 import html
-
 from sqlalchemy import create_engine , text
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.exc import IntegrityError
