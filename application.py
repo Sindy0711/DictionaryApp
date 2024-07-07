@@ -59,7 +59,7 @@ def validate_password(password):
         return "The password must contain at least one special character"
     return None
 
-def get_random_question(user_id, page_id):
+def get_random_question():
     try:
         user_id = session.get("user_id")
         page_id = session.get('page_id')
@@ -91,7 +91,7 @@ def get_random_question(user_id, page_id):
         return question
     except Exception as e:
         logging.error(f"Error in get_random_question: {e}")
-        return redirect(url_for('view_page', page_id=page_id))
+        return None
 
 
 def get_random_choices(correct_answer,column):
@@ -600,19 +600,13 @@ def quiz():
 
         word_count = get_word_count_from_db(user_id, page_id)
         selected_quizzes = []
-
+        
         for quiz_type, count in quiz_questions_count.items():
-            if quiz_type == 'matching_game' and word_count < 5:
-                continue
-
-            available_count = min(count, word_count)  # Chọn số lượng từ ít hơn nếu không đủ
-            selected_quizzes.extend([quiz_type] * available_count)
-
-        if not selected_quizzes:
-            return render_template('error.html', message="Not enough vocabulary to create a quiz")
+            selected_quizzes.extend([quiz_type] * count)
 
         random.shuffle(selected_quizzes)
         session['selected_quizzes'] = selected_quizzes
+        session['score'] = 0
         session['question_number'] = 0
         session['total_questions'] = len(selected_quizzes)
         session['asked_questions'] = []
@@ -682,7 +676,6 @@ def update_score_in_db(user_id, page_id, word_id, score):
         db.commit()
     except Exception as e:
         print(f"Error updating score: {e}")
-
 
 def quiz_route(question_col, answer_col):
     question_number = session.setdefault('question_number', 0)
