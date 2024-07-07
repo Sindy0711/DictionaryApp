@@ -689,7 +689,7 @@ def quiz_route(question_col, answer_col):
     if request.method == 'POST':
         user_choice = request.form.get('user_choice')
         correct_answer = request.form.get('correct_answer')
-        word_id = request.form.get('word_id')  # Lấy word_id từ form
+        word_id = request.form.get('word_id') 
         start_time = session.get('start_time')
 
         if request.form.get('action') == 'submit':
@@ -697,10 +697,10 @@ def quiz_route(question_col, answer_col):
             time_diff = (end_time - start_time).total_seconds()
 
             if user_choice == correct_answer:
-                if time_diff <= 5:
-                    update_score_in_db(user_id, page_id, word_id, 0.72)
+                if time_diff < 15:
+                    update_score_in_db(user_id, page_id, word_id, 0.68)
                 else:
-                    update_score_in_db(user_id, page_id, word_id, 1)
+                    update_score_in_db(user_id, page_id, word_id, 0.78)
                 flash("Correct!", "success")
             else:
                 flash(f"Incorrect. The correct answer is: {correct_answer}", "danger")

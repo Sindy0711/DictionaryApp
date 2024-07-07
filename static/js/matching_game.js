@@ -126,7 +126,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
                 setTimeout(() => {
-                    window.location.href = "/VocabularyPage";
+                    window.location.href = `/view_page/${pageId}`;
                 }, 30000);
             })
             .catch(error => {
