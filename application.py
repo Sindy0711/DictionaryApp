@@ -1,17 +1,17 @@
-import os
-import re
-import logging
-from functools import wraps
-from datetime import datetime
 import random
-
+from random import shuffle
+import os , re , logging
+from functools import wraps
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import scoped_session, sessionmaker
 from flask import Flask, jsonify, session, render_template, redirect, request, url_for, flash
 from flask_session import Session
 from flask_paginate import Pagination, get_page_parameter
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, text
-from sqlalchemy.orm import scoped_session, sessionmaker
 from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime
+import random
+from datetime import datetime
 
 load_dotenv()
 
@@ -60,7 +60,6 @@ def validate_password(password):
         return "The password must contain at least one special character"
     return None
 
-
 def get_random_question():
     try:
         user_id = session.get("user_id")
@@ -72,12 +71,12 @@ def get_random_question():
 
         if asked_questions:
             query = text('SELECT * FROM Vocabulary WHERE word_id IN '
-                         '(SELECT word_id FROM LearningProgress WHERE page_id=:page_id AND user_id=:user_id) '
+                         '(SELECT word_id FROM LearningProgress WHERE page_id = :page_id AND user_id = :user_id) '
                          'AND word_id NOT IN :asked_questions ORDER BY RANDOM() LIMIT 1')
             params = {"page_id": page_id, "user_id": user_id, "asked_questions": tuple(asked_questions)}
         else:
             query = text('SELECT * FROM Vocabulary WHERE word_id IN '
-                         '(SELECT word_id FROM LearningProgress WHERE page_id=:page_id AND user_id=:user_id) '
+                         '(SELECT word_id FROM LearningProgress WHERE page_id = :page_id AND user_id = :user_id) '
                          'ORDER BY RANDOM() LIMIT 1')
             params = {"page_id": page_id, "user_id": user_id}
 
@@ -95,11 +94,10 @@ def get_random_question():
         logging.error(f"Error in get_random_question: {e}")
         return None
 
-
 def get_random_choices(correct_answer,column):
     with engine.connect() as db:
         choices = db.execute(
-            text(f'SELECT {column} FROM Vocabulary WHERE {column} !=:correct_answer ORDER BY RANDOM() LIMIT 3'),
+            text(f'SELECT {column} FROM Vocabulary WHERE {column} != :correct_answer ORDER BY RANDOM() LIMIT 3'),
             {"correct_answer": correct_answer}
         ).fetchall()
         return [choice[0] for choice in choices]
@@ -116,6 +114,7 @@ def get_word_count_from_db(user_id, page_id):
     with engine.connect() as db:
         result = db.execute(query, params).scalar()
     return result
+
 def update_score_in_db(user_id, page_id, score):
     query = text('UPDATE LearningProgress SET score = score + :score WHERE page_id = :page_id AND user_id = :user_id')
     params = {"page_id": page_id, "user_id": user_id, "score": score}
@@ -300,7 +299,7 @@ def delete_vocabulary_page(page_id):
             logging.info(f"Deleted from VocabularyPage")
             db.commit()
 
-        return jsonify({"status": "success", "page_name": page_name})
+        return jsonify({"status": "success"})
 
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)})
@@ -609,21 +608,9 @@ def quiz():
 
     return render_template('quiz.html')
 
+@app.route('/word_to_meaning', methods=['GET', 'POST'])
 def word_to_meaning():
-    try:
-        question = get_random_question()
-
-        if not question:
-            return render_template('error.html', error_message="No question available.")
-        page = {
-            'page_name': 'Your Page Name',
-        }
-
-        return render_template('view_page.html', page=page, question=question)
-    
-    except Exception as e:
-        logging.error(f"Error in word_to_meaning: {e}")
-        return render_template('error.html', error_message="An error occurred.")
+    return quiz_route('word', 'meaning')
 
 @app.route('/meaning_to_word', methods=['GET', 'POST'])
 def meaning_to_word():
@@ -636,6 +623,9 @@ def fill_in_the_blanks():
     user_id = session.get("user_id")
     page_id = session.get("page_id")
 
+    if not user_id or not page_id:
+        return "User ID or Page ID not found in session", 400
+
     if request.method == 'POST':
         user_answer = request.form.get('user_answer')
         correct_word = request.form.get('correct_word')
@@ -644,7 +634,7 @@ def fill_in_the_blanks():
             if user_answer.lower() == correct_word.lower():
                 flash("Correct!", "success")
                 session['score'] += 1
-                update_score_in_db(user_id, page_id, 1)  # Đã sửa lại tham số ở đây
+                update_score_in_db(session.get("user_id"), session.get("page_id"), 1)
             else:
                 flash(f"Incorrect. The correct word is: {correct_word}", "danger")
             session['question_number'] += 1
@@ -654,7 +644,7 @@ def fill_in_the_blanks():
         else:
             return redirect(url_for('next_question'))
 
-    question = get_random_question()  # Không truyền thêm tham số ở đây
+    question = get_random_question()
     if not question:
         return render_template("error.html", message="No vocabulary found")
 
@@ -711,16 +701,11 @@ def next_question():
     page_id = session.get("page_id")
 
     if question_number >= len(selected_quizzes):
-        page = engine.execute(
-            text('SELECT * FROM Pages WHERE page_id = :page_id'),
-            {"page_id": page_id}
-        ).fetchone()
-        return render_template('view_page.html', page=page)
-
-    next_quiz_type = selected_quizzes[question_number]
+        return render_template('view_page.html' , page_id = page_id )
     session['question_number'] += 1 
-    return redirect(url_for(next_quiz_type))
+    next_quiz_type = selected_quizzes[question_number]
 
+    return redirect(url_for(next_quiz_type))
 
 @app.route('/restart_quiz')
 def restart_quiz():
@@ -824,9 +809,9 @@ def update_points_matching_game():
         time_left = data.get('time_left')  # Lấy thời gian còn lại
 
         if not isinstance(page_id, int):
-            page_id = int(page_id)
+            page_id = int(page_id)  # Chuyển đổi page_id thành số nguyên nếu cần
 
-        points_per_correct = 0 
+        points_per_correct = 0  # Giá trị mặc định
 
         if 31 <= time_left <= 60:
             points_per_correct = 0.82
@@ -859,8 +844,5 @@ def update_points_matching_game():
         flash(f"An error occurred: {str(e)}", "danger")
         return jsonify({"status": "error", "message": str(e)})
 
-
-
-    
 if __name__ == "__main__":
     app.run(debug=True)
