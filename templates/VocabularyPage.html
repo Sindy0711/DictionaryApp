@@ -3,35 +3,52 @@
 {% block title %}Vocabulary Page{% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="row">
-        <div class="col">
-            <h1 class="my-4">My vocabulary page</h1>
-        </div>
-    </div>
-    <div class="row">
-        <div class="col">
-            <h2 class="my-4">List of vocabulary pages</h2>
-            <ul id="pages-list">
-                {% for page in pages %}
-                <li class="mb-3">
-                    <p><strong>Page name:</strong> {{ page. page_name}}</p>
-                    <p><strong>Describe:</strong> {{ page.description or "No Description" }}</p>
-                    <a href="{{ url_for('view_page', page_id=page. page_id) }}" class="btn btn-info mt-2">See vocabulary</a>
-                    <button type="button" class="btn btn-warning mt-2" onclick="location.href='{{ url_for('recommend', page_id=page.page_id) }}'">Recommend</button>
-                    <button type="button" class="btn btn-danger mt-2" data-page-id="{{ page.page_id }}">Delete</button>
-                </li>
-                </li>
-                {% endfor %}
-            </ul>
-        </div>
-    </div>
-    <div class="row">
-        <div class="col">
-            <div class="float-right">
+<div class="vcb-wrapper">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-10 border p-4 mb-4">
+                <h1 class="my-4 text-center">My vocabulary page</h1>
+                <div class="highlight-border p-4 mb-4">
+                    <h2 class="my-4 text-center">List of vocabulary pages</h2>
+                    {% if pages %}
+                    <ul id="pages-list" class="list-unstyled">
+                        {% for page in pages %}
+                        <li class="mb-3 border p-3">
+                            <div class="item-left">
+                                <p><strong>Page name:</strong> {{ page.page_name }}</p>
+                                <p><strong>Describe:</strong> {{ page.description or "No description available" }}</p>
+                            </div>
+                            <div class="item-right">
+                                <a href="{{ url_for('view_page', page_id=page.page_id) }}" class="btn btn-info">See vocabulary</a>
+                                <button type="button" class="btn btn-danger" data-page-id="{{ page.page_id }}">Delete</button>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="text-center">There are no vocabulary pages available</p>
+                    {% endif %}
+                </div>
                 <div class="float-right">
                     <a href="{{ url_for('saved_words') }}" class="btn btn-success mt-2 mr-2">Add vocabulary to the page</a>
                     <button type="button" class="btn btn-primary mt-2" id="create-page-btn">Create a new page</button>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <form id="create-page-form" action="{{ url_for('create_vocabulary_page') }}" method="post" style="display: none;">
+                            <div class="form_create">
+                                <div class="form-group">
+                                    <label for="page-name">Page name</label>
+                                    <input type="text" class="form-control" id="page-name" name="page_name" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="page-description">Description</label>
+                                    <textarea class="form-control" id="page-description" name="page_description"></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Create a vocabulary page</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>

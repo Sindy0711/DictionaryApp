@@ -32,13 +32,13 @@ db = scoped_session(sessionmaker(bind=engine))
 ITEMS_PER_PAGE = 30
 
 quiz_questions_count = {
-    'fill_in_the_blanks': 1,
-    'word_to_meaning': 2,
-    'meaning_to_word': 2,
-    'matching_game': 1
+    'fill_in_the_blanks': 2,
+    'word_to_meaning': 4,
+    'meaning_to_word': 4
 }
+# Helper
 
-## Helper 
+
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -46,6 +46,7 @@ def login_required(f):
             return redirect(url_for("login"))
         return f(*args, **kwargs)
     return decorated_function
+
 
 def validate_password(password):
     if len(password) < 8:
@@ -61,7 +62,7 @@ def validate_password(password):
 def get_random_question(user_id, page_id):
     try:
         user_id = session.get("user_id")
-        page_id = session.get("page_id")
+        page_id = session.get('page_id')
         asked_questions = session.get('asked_questions', [])
 
         if not user_id or not page_id:
@@ -114,11 +115,20 @@ def get_word_count_from_db(user_id, page_id):
         result = db.execute(query, params).scalar()
     return result
 
-def update_score_in_db(user_id, page_id, score):
-    query = text('UPDATE LearningProgress SET score = score + :score WHERE page_id = :page_id AND user_id = :user_id')
-    params = {"page_id": page_id, "user_id": user_id, "score": score}
-    with engine.connect() as db:
-        db.execute(query, params)
+def update_score_in_db(user_id, page_id, word_id, score):
+    try:
+        query = text('''
+            UPDATE LearningProgress 
+            SET score = score + :score 
+            WHERE page_id = :page_id AND user_id = :user_id AND word_id = :word_id
+        ''')
+        params = {"page_id": page_id, "user_id": user_id, "score": score, "word_id": word_id}
+        
+        with engine.connect() as db:
+            db.execute(query, params)
+            
+    except Exception as e:
+        logging.error(f"Error updating score: {e}")
 
 # ROUTES
 
@@ -290,15 +300,20 @@ def delete_vocabulary_page(page_id):
     try:
         user_id = session.get("user_id")
         logging.info(f"Deleting page_id: {page_id} for user_id: {user_id}")
+        
         with engine.connect() as db:
             db.execute(text('DELETE FROM LearningProgress WHERE page_id = :page_id AND user_id = :user_id'), {"page_id": page_id, "user_id": user_id})
             logging.info(f"Deleted from LearningProgress")
             db.execute(text('DELETE FROM VocabularyPage WHERE page_id = :page_id AND user_id = :user_id'), {"page_id": page_id, "user_id": user_id})
             logging.info(f"Deleted from VocabularyPage")
             db.commit()
+
         return jsonify({"status": "success"})
+
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)})
+
+    
 
 @app.route('/api/get_vocabulary_pages', methods=['GET'])
 @login_required
@@ -426,8 +441,6 @@ def VocabularyPage():
 def recommend(page_id):
     try:
         user_id = session.get("user_id")
-        
-        # Step 1: Get the current page's name
         current_page = db.execute(
             text('SELECT page_name FROM VocabularyPage WHERE page_id = :page_id AND user_id = :user_id'),
             {"page_id": page_id, "user_id": user_id}
@@ -438,8 +451,7 @@ def recommend(page_id):
             return redirect(url_for('VocabularyPage'))
 
         page_name = current_page.page_name
-
-        # Step 2: Find other pages with the same name but different user_id
+        
         similar_pages = db.execute(
             text('SELECT page_id FROM VocabularyPage WHERE page_name = :page_name AND user_id != :user_id'),
             {"page_name": page_name, "user_id": user_id}
@@ -451,7 +463,6 @@ def recommend(page_id):
 
         similar_page_ids = [page.page_id for page in similar_pages]
 
-        # Step 3: Get words from these pages
         word_ids = db.execute(
             text('SELECT DISTINCT word_id FROM LearningProgress WHERE page_id IN :page_ids'),
             {"page_ids": tuple(similar_page_ids)}
@@ -463,7 +474,6 @@ def recommend(page_id):
 
         word_ids = [word.word_id for word in word_ids]
 
-        # Step 4: Fetch word details, excluding words already in the current page
         current_page_word_ids = db.execute(
             text('SELECT word_id FROM LearningProgress WHERE page_id = :page_id'),
             {"page_id": page_id}
@@ -477,7 +487,6 @@ def recommend(page_id):
             flash("No new words found.")
             return redirect(url_for('view_page', page_id=page_id))
 
-        # Limit to 10 words
         filtered_word_ids = filtered_word_ids[:10]
 
         suggested_words = db.execute(
@@ -604,7 +613,6 @@ def quiz():
 
         random.shuffle(selected_quizzes)
         session['selected_quizzes'] = selected_quizzes
-        session['score'] = 0
         session['question_number'] = 0
         session['total_questions'] = len(selected_quizzes)
         session['asked_questions'] = []
@@ -612,6 +620,7 @@ def quiz():
         return redirect(url_for('next_question'))
 
     return render_template('quiz.html')
+
 
 @app.route('/word_to_meaning', methods=['GET', 'POST'])
 def word_to_meaning():
@@ -625,58 +634,90 @@ def meaning_to_word():
 def fill_in_the_blanks():
     question_number = session.setdefault('question_number', 0)
     total_questions = session.get('total_questions', 10)
+    user_id = session.get("user_id")
+    page_id = session.get("page_id")
+
+    if not user_id or not page_id:
+        return "User ID or Page ID not found in session", 400
 
     if request.method == 'POST':
         user_answer = request.form.get('user_answer')
         correct_word = request.form.get('correct_word')
+        word_id = request.form.get('word_id')  # Lấy word_id từ form
 
         if request.form.get('action') == 'submit':
             if user_answer.lower() == correct_word.lower():
                 flash("Correct!", "success")
                 session['score'] += 1
-                update_score_in_db(session.get("user_id"), session.get("page_id"), 1)
+                update_score_in_db(user_id, page_id, word_id, 1)  # Cập nhật điểm trực tiếp vào cơ sở dữ liệu
             else:
                 flash(f"Incorrect. The correct word is: {correct_word}", "danger")
+
             session['question_number'] += 1
 
-        if session['question_number'] >= session['total_questions']:
-            return redirect(url_for('view_page', page_id=session.get("page_id")))
+        if session['question_number'] >= total_questions:
+            return redirect(url_for('view_page', page_id=page_id))
         else:
             return redirect(url_for('next_question'))
 
-    question = get_random_question(session.get("user_id"), session.get("page_id"))
+    question = get_random_question()
     if not question:
         return render_template("error.html", message="No vocabulary found")
 
     meaning = question.meaning
     correct_word = question.word
 
-    return render_template('fill_in_the_blanks.html', meaning=meaning, correct_word=correct_word, question_number=question_number)
+    return render_template('fill_in_the_blanks.html', meaning=meaning, correct_word=correct_word, question_number=question_number, word_id=question.word_id)
+
+def update_score_in_db(user_id, page_id, word_id, score):
+    try:
+        db.execute(
+            text('''
+                UPDATE LearningProgress
+                SET score = score + :score
+                WHERE user_id = :user_id AND page_id = :page_id AND word_id = :word_id
+            '''), 
+            {"user_id": user_id, "page_id": page_id, "word_id": word_id, "score": score}
+        )
+        db.commit()
+    except Exception as e:
+        print(f"Error updating score: {e}")
+
 
 def quiz_route(question_col, answer_col):
     question_number = session.setdefault('question_number', 0)
     total_questions = session.get('total_questions', 10)
+    user_id = session.get("user_id")
+    page_id = session.get("page_id")
+
+    if not user_id or not page_id:
+        return "User ID or Page ID not found in session", 400
 
     if request.method == 'POST':
         user_choice = request.form.get('user_choice')
         correct_answer = request.form.get('correct_answer')
+        word_id = request.form.get('word_id')  # Lấy word_id từ form
         start_time = session.get('start_time')
 
         if request.form.get('action') == 'submit':
-                end_time = datetime.now()
-                time_diff = (end_time - start_time).total_seconds()
-                
-                if user_choice == correct_answer:
-                    if time_diff <= 5:
-                        update_score_in_db(session.get("user_id"), session.get("page_id"), 0.72)
-                    else:
-                        update_score_in_db(session.get("user_id"), session.get("page_id"), 1)
-                    flash(f"Correct!", "success")
+            end_time = datetime.now()
+            time_diff = (end_time - start_time).total_seconds()
+
+            if user_choice == correct_answer:
+                if time_diff <= 5:
+                    update_score_in_db(user_id, page_id, word_id, 0.72)
                 else:
-                    flash(f"Incorrect. The correct answer is: {correct_answer}", "danger")
-    
-                    session['question_number'] += 1
-        return redirect(url_for('next_question'))
+                    update_score_in_db(user_id, page_id, word_id, 1)
+                flash("Correct!", "success")
+            else:
+                flash(f"Incorrect. The correct answer is: {correct_answer}", "danger")
+
+            session['question_number'] += 1
+
+        if session['question_number'] >= total_questions:
+            return redirect(url_for('view_page', page_id=page_id))
+        else:
+            return redirect(url_for('next_question'))
 
     session['start_time'] = datetime.now()
     question = get_random_question()
@@ -690,8 +731,7 @@ def quiz_route(question_col, answer_col):
     choices.append(correct_answer)
     random.shuffle(choices)
 
-    return render_template('multiple_choice.html', question_text=question_text, choices=choices, correct_answer=correct_answer, question_number=question_number)
-
+    return render_template('multiple_choice.html', question_text=question_text, choices=choices, correct_answer=correct_answer, question_number=question_number, word_id=question.word_id)
 
 
 @app.route('/next_question', methods=['GET', 'POST'])
@@ -733,7 +773,6 @@ def matching_game():
     if not page_id:
         flash("Page ID is required.")
         return redirect(url_for('view_page', page_id=page_id))
-
     try:
         words = db.execute(
             text('''
@@ -759,10 +798,10 @@ def matching_game():
         random.shuffle(meanings)
 
         return render_template('matching_game.html', words=words, meanings=meanings, page_id=page_id)
-
     except Exception as e:
         flash("An error occurred while fetching words for the matching game. Please try again.")
         return redirect(url_for('view_page', page_id=page_id))
+
 
 @app.route('/check_matching_answers', methods=['POST'])
 def check_matching_answers():
@@ -777,6 +816,7 @@ def check_matching_answers():
         if not results or not page_id:
             raise ValueError("Missing results or page_id in the request data.")
 
+        
         word_ids = [item['word_id'] for item in results]
 
         correct_answers = db.execute(
@@ -794,29 +834,35 @@ def check_matching_answers():
 
             if user_answer == correct_answer:
                 user_correct_answers[word_id] = user_answer
-
         return jsonify({"status": "success", "correct_answers": user_correct_answers, "message": "Answers have been checked successfully.", "page_id": page_id})
-
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)})
 
 @app.route('/update_points_matching_game', methods=['POST'])
 def update_points_matching_game():
+    data = request.get_json()
+    user_id = session.get('user_id')
+
     try:
-        data = request.get_json()
-        user_id = session.get('user_id')
-
-        if not user_id:
-            raise ValueError("User ID is missing in session.")
-
-        points_per_correct = data.get('points_per_correct')
         correct_answers = data.get('correct_answers')
         page_id = data.get('page_id')
+        time_left = data.get('time_left')  # Lấy thời gian còn lại
 
-        if not points_per_correct or not correct_answers or not page_id:
-            raise ValueError("Invalid data provided.")
+        if not isinstance(page_id, int):
+            page_id = int(page_id)  # Chuyển đổi page_id thành số nguyên nếu cần
 
-        for word_id in correct_answers.keys():
+        points_per_correct = 0  # Giá trị mặc định
+
+        if 31 <= time_left <= 60:
+            points_per_correct = 0.82
+        elif 0 <= time_left <= 30:
+            points_per_correct = 0.75
+
+        if points_per_correct == 0:
+            raise ValueError("Time left out of valid range.")
+
+        # Update score in LearningProgress table
+        for word_id, meaning in correct_answers.items():
             db.execute(
                 text('''
                     UPDATE LearningProgress
@@ -832,10 +878,11 @@ def update_points_matching_game():
             )
 
         db.commit()
+        flash(f"Correct! You earned {points_per_correct} points for each correct answer.", "success")
         return jsonify({"status": "success", "message": "Points have been successfully updated."})
-
     except Exception as e:
+        flash(f"An error occurred: {str(e)}", "danger")
         return jsonify({"status": "error", "message": str(e)})
-    
+
 if __name__ == "__main__":
     app.run(debug=True)

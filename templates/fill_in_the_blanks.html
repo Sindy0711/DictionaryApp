@@ -19,9 +19,10 @@
               <input type="text" class="form-control" id="user_answer" name="user_answer" required />
             </div>
             <input type="hidden" name="correct_word" value="{{ correct_word }}" />
+            <input type="hidden" name="word_id" value="{{ word_id }}" />
             <input type="hidden" name="question_number" value="{{ question_number }}" />
             <div class="d-flex justify-content-between mt-4">
-              <button id="submit-button" class="btn btn-success" type="submit" name="action"  value="submit">Submit Answer</button>
+              <button id="submit-button" class="btn btn-success" type="submit" name="action" value="submit">Submit Answer</button>
               <button type="submit" class="btn btn-primary" name="action" value="next">Next</button>
             </div>
           </form>
@@ -47,4 +48,5 @@
     </div>
   </div>
 </div>
+<script src="{{ url_for('static', filename='js/quiz.js') }}" defer></script>
 {% endblock %}

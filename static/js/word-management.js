@@ -86,7 +86,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const data = await response.json();
             if (data.status === "success") {
                 alert("Words saved successfully!");
-                window.location.reload();
+                window.location.href = `/view_page/${existingPageId}`;
             } else {
                 alert(`Error: ${data.message}`);
             }
