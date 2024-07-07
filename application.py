@@ -58,14 +58,15 @@ def validate_password(password):
         return "The password must contain at least one special character"
     return None
 
-def get_random_question():
+def get_random_question(user_id, page_id):
     try:
-        user_id , page_id = session.get("user_id") , session.get('page_id')
+        user_id = session.get("user_id")
+        page_id = session.get("page_id")
         asked_questions = session.get('asked_questions', [])
-        
+
         if not user_id or not page_id:
             raise Exception("Page ID or User ID is missing")
-    
+
         if asked_questions:
             query = text('SELECT * FROM Vocabulary WHERE word_id IN '
                          '(SELECT word_id FROM LearningProgress WHERE page_id = :page_id AND user_id = :user_id) '
@@ -82,14 +83,15 @@ def get_random_question():
 
         if not question:
             raise Exception("No random question found")
-        
+
         asked_questions.append(question.word_id)
         session['asked_questions'] = asked_questions
-        
+
         return question
     except Exception as e:
         logging.error(f"Error in get_random_question: {e}")
-        return render_template('view_page.html' , page_id = page_id )
+        return redirect(url_for('view_page', page_id=page_id))
+
 
 def get_random_choices(correct_answer,column):
     with engine.connect() as db:
@@ -589,11 +591,16 @@ def quiz():
 
         word_count = get_word_count_from_db(user_id, page_id)
         selected_quizzes = []
-        
+
         for quiz_type, count in quiz_questions_count.items():
             if quiz_type == 'matching_game' and word_count < 5:
                 continue
-            selected_quizzes.extend([quiz_type] * count)
+
+            available_count = min(count, word_count)  # Chọn số lượng từ ít hơn nếu không đủ
+            selected_quizzes.extend([quiz_type] * available_count)
+
+        if not selected_quizzes:
+            return render_template('error.html', message="Not enough vocabulary to create a quiz")
 
         random.shuffle(selected_quizzes)
         session['selected_quizzes'] = selected_quizzes
@@ -633,7 +640,7 @@ def fill_in_the_blanks():
             session['question_number'] += 1
 
         if session['question_number'] >= session['total_questions']:
-                    return render_template('view_page.html' , page_id = page_id )
+            return redirect(url_for('view_page', page_id=session.get("page_id")))
         else:
             return redirect(url_for('next_question'))
 
@@ -694,7 +701,7 @@ def next_question():
     page_id = session.get("page_id")
 
     if question_number >= len(selected_quizzes):
-        return render_template('view_page.html' , page_id = page_id )
+        return redirect(url_for('view_page', page_id=page_id))
     session['question_number'] += 1 
     next_quiz_type = selected_quizzes[question_number]
 
