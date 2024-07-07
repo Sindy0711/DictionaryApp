@@ -32,10 +32,9 @@ db = scoped_session(sessionmaker(bind=engine))
 ITEMS_PER_PAGE = 30
 
 quiz_questions_count = {
-    'fill_in_the_blanks': 1,
-    'word_to_meaning': 2,
-    'meaning_to_word': 2,
-    'matching_game': 1
+    'fill_in_the_blanks': 2,
+    'word_to_meaning': 4,
+    'meaning_to_word': 4
 }
 # Helper
 
@@ -115,11 +114,20 @@ def get_word_count_from_db(user_id, page_id):
         result = db.execute(query, params).scalar()
     return result
 
-def update_score_in_db(user_id, page_id, score):
-    query = text('UPDATE LearningProgress SET score = score + :score WHERE page_id = :page_id AND user_id = :user_id')
-    params = {"page_id": page_id, "user_id": user_id, "score": score}
-    with engine.connect() as db:
-        db.execute(query, params)
+def update_score_in_db(user_id, page_id, word_id, score):
+    try:
+        query = text('''
+            UPDATE LearningProgress 
+            SET score = score + :score 
+            WHERE page_id = :page_id AND user_id = :user_id AND word_id = :word_id
+        ''')
+        params = {"page_id": page_id, "user_id": user_id, "score": score, "word_id": word_id}
+        
+        with engine.connect() as db:
+            db.execute(query, params)
+            
+    except Exception as e:
+        logging.error(f"Error updating score: {e}")
 
 # ROUTES
 
@@ -593,8 +601,6 @@ def quiz():
         selected_quizzes = []
         
         for quiz_type, count in quiz_questions_count.items():
-            if quiz_type == 'matching_game' and word_count < 5:
-                continue
             selected_quizzes.extend([quiz_type] * count)
 
         random.shuffle(selected_quizzes)
@@ -607,6 +613,7 @@ def quiz():
         return redirect(url_for('next_question'))
 
     return render_template('quiz.html')
+
 
 @app.route('/word_to_meaning', methods=['GET', 'POST'])
 def word_to_meaning():
@@ -629,18 +636,20 @@ def fill_in_the_blanks():
     if request.method == 'POST':
         user_answer = request.form.get('user_answer')
         correct_word = request.form.get('correct_word')
+        word_id = request.form.get('word_id')  # Lấy word_id từ form
 
         if request.form.get('action') == 'submit':
             if user_answer.lower() == correct_word.lower():
                 flash("Correct!", "success")
                 session['score'] += 1
-                update_score_in_db(session.get("user_id"), session.get("page_id"), 1)
+                update_score_in_db(user_id, page_id, word_id, 1)  # Cập nhật điểm trực tiếp vào cơ sở dữ liệu
             else:
                 flash(f"Incorrect. The correct word is: {correct_word}", "danger")
+
             session['question_number'] += 1
 
-        if session['question_number'] >= session['total_questions']:
-            return render_template('view_page.html', page_id=page_id)
+        if session['question_number'] >= total_questions:
+            return redirect(url_for('view_page', page_id=page_id))
         else:
             return redirect(url_for('next_question'))
 
@@ -651,32 +660,57 @@ def fill_in_the_blanks():
     meaning = question.meaning
     correct_word = question.word
 
-    return render_template('fill_in_the_blanks.html', meaning=meaning, correct_word=correct_word, question_number=question_number)
+    return render_template('fill_in_the_blanks.html', meaning=meaning, correct_word=correct_word, question_number=question_number, word_id=question.word_id)
+
+def update_score_in_db(user_id, page_id, word_id, score):
+    try:
+        db.execute(
+            text('''
+                UPDATE LearningProgress
+                SET score = score + :score
+                WHERE user_id = :user_id AND page_id = :page_id AND word_id = :word_id
+            '''), 
+            {"user_id": user_id, "page_id": page_id, "word_id": word_id, "score": score}
+        )
+        db.commit()
+    except Exception as e:
+        print(f"Error updating score: {e}")
+
 
 def quiz_route(question_col, answer_col):
     question_number = session.setdefault('question_number', 0)
     total_questions = session.get('total_questions', 10)
+    user_id = session.get("user_id")
+    page_id = session.get("page_id")
+
+    if not user_id or not page_id:
+        return "User ID or Page ID not found in session", 400
 
     if request.method == 'POST':
         user_choice = request.form.get('user_choice')
         correct_answer = request.form.get('correct_answer')
+        word_id = request.form.get('word_id')  # Lấy word_id từ form
         start_time = session.get('start_time')
 
         if request.form.get('action') == 'submit':
-                end_time = datetime.now()
-                time_diff = (end_time - start_time).total_seconds()
-                
-                if user_choice == correct_answer:
-                    if time_diff <= 5:
-                        update_score_in_db(session.get("user_id"), session.get("page_id"), 0.72)
-                    else:
-                        update_score_in_db(session.get("user_id"), session.get("page_id"), 1)
-                    flash(f"Correct!", "success")
+            end_time = datetime.now()
+            time_diff = (end_time - start_time).total_seconds()
+
+            if user_choice == correct_answer:
+                if time_diff <= 5:
+                    update_score_in_db(user_id, page_id, word_id, 0.72)
                 else:
-                    flash(f"Incorrect. The correct answer is: {correct_answer}", "danger")
-    
-                    session['question_number'] += 1
-        return redirect(url_for('next_question'))
+                    update_score_in_db(user_id, page_id, word_id, 1)
+                flash("Correct!", "success")
+            else:
+                flash(f"Incorrect. The correct answer is: {correct_answer}", "danger")
+
+            session['question_number'] += 1
+
+        if session['question_number'] >= total_questions:
+            return redirect(url_for('view_page', page_id=page_id))
+        else:
+            return redirect(url_for('next_question'))
 
     session['start_time'] = datetime.now()
     question = get_random_question()
@@ -690,8 +724,7 @@ def quiz_route(question_col, answer_col):
     choices.append(correct_answer)
     random.shuffle(choices)
 
-    return render_template('multiple_choice.html', question_text=question_text, choices=choices, correct_answer=correct_answer, question_number=question_number)
-
+    return render_template('multiple_choice.html', question_text=question_text, choices=choices, correct_answer=correct_answer, question_number=question_number, word_id=question.word_id)
 
 
 @app.route('/next_question', methods=['GET', 'POST'])
@@ -701,7 +734,8 @@ def next_question():
     page_id = session.get("page_id")
 
     if question_number >= len(selected_quizzes):
-        return render_template('view_page.html' , page_id = page_id )
+        return redirect(url_for('view_page', page_id=page_id))
+
     session['question_number'] += 1 
     next_quiz_type = selected_quizzes[question_number]
 
