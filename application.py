@@ -206,7 +206,7 @@ def login():
         session["full_name"] = Q.full_name
         session["logged_in"] = True
 
-        return redirect(url_for("page"))
+        return redirect(url_for("vocabulary_page"))
 
     else:
         return render_template("login.html")
@@ -218,6 +218,12 @@ def logout():
     return redirect(url_for("index"))
 
 # BUSINESS FUNCTION
+
+@app.route('/vocabulary_page')
+def vocabulary_page():
+    if not session.get("logged_in"):
+        return redirect(url_for("login"))
+    return render_template('VocabularyPage.html')
 
 @app.route('/page', methods=['GET'])
 def page():

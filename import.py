@@ -5,7 +5,8 @@ from sqlalchemy import create_engine , text
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.exc import IntegrityError
 
-engine = create_engine(os.getenv("postgresql://applearningenglish_user:992tZduGPfgURFVp79JbKZVTv9ZFK4MB@dpg-cq58fodds78s73ctnjng-a.singapore-postgres.render.com/applearningenglish"))
+DATABASE_URL = "postgresql://applearningenglish_user:992tZduGPfgURFVp79JbKZVTv9ZFK4MB@dpg-cq58fodds78s73ctnjng-a.singapore-postgres.render.com/applearningenglish"
+engine = create_engine(os.getenv("DATABASE_URL"))
 db = scoped_session(sessionmaker(bind=engine))
 
 def clean_html(raw_html):
